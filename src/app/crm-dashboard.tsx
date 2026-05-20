@@ -480,11 +480,11 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   // Metric aggregates for dashboard
   const activePropertiesCount = properties.filter(p => p.status === 'active').length;
   const archivedPropertiesCount = properties.filter(p => p.status === 'archived').length;
-  const activeClientsCount = clients.filter(c => c.status === 'active' || !c.status).length;
+  const activeClientsCount = clients.filter(c => c.status === 'active' || c.status === 'negotiating' || !c.status).length;
   const closedClientsCount = clients.filter(c => c.status === 'completed').length;
 
   const totalClientsBudget = clients
-    .filter(c => c.status === 'active' || !c.status)
+    .filter(c => c.status === 'active' || c.status === 'negotiating' || !c.status)
     .reduce((sum, c) => sum + Number(c.price_max), 0);
 
   const activePropertiesVolume = properties
