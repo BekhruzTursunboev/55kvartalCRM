@@ -133,6 +133,38 @@ export async function deleteProperty(id: number) {
   }
 }
 
+export async function updateProperty(id: number, property: Omit<Property, 'id' | 'created_at'>) {
+  await ensureDb();
+  try {
+    const detailsJson = JSON.stringify(property.details || {});
+    await sql`
+      UPDATE properties 
+      SET 
+        title = ${property.title},
+        category = ${property.category},
+        type = ${property.type},
+        deal_type = ${property.deal_type},
+        price = ${property.price},
+        rayon = ${property.rayon},
+        orientir = ${property.orientir || ''},
+        rooms = ${property.rooms},
+        area = ${property.area},
+        floor = ${property.floor},
+        max_floor = ${property.max_floor},
+        details = ${detailsJson},
+        contact_name = ${property.contact_name || ''},
+        contact_phone = ${property.contact_phone},
+        status = ${property.status || 'active'}
+      WHERE id = ${id}
+    `;
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update property:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+
 // ==========================================
 // CLIENT ACTIONS
 // ==========================================
@@ -234,6 +266,38 @@ export async function deleteClient(id: number) {
     return { success: false, error: String(error) };
   }
 }
+
+export async function updateClient(id: number, client: Omit<Client, 'id' | 'created_at'>) {
+  await ensureDb();
+  try {
+    const rayonsJson = JSON.stringify(client.rayons || []);
+    const detailsJson = JSON.stringify(client.details || {});
+    await sql`
+      UPDATE clients 
+      SET 
+        name = ${client.name},
+        phone = ${client.phone},
+        category = ${client.category},
+        type = ${client.type},
+        deal_type = ${client.deal_type},
+        price_min = ${client.price_min},
+        price_max = ${client.price_max},
+        rayons = ${rayonsJson},
+        orientir = ${client.orientir || ''},
+        min_area = ${client.min_area},
+        rooms = ${client.rooms},
+        details = ${detailsJson},
+        notes = ${client.notes || ''},
+        status = ${client.status || 'active'}
+      WHERE id = ${id}
+    `;
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update client:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
 
 // ==========================================
 // SMART MATCHING ENGINE ACTIONS

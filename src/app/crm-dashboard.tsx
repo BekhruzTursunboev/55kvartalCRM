@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Building2, Search, Plus, MapPin, 
-  Phone, X, FileText, Check, RefreshCw, Filter, ArrowRight
+  Phone, X, Check, RefreshCw, Filter, ArrowRight,
+  BarChart3, Megaphone, Copy, Edit3, Database, 
+  ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info
 } from 'lucide-react';
 import { 
   Property, Client, addProperty, addClient, getProperties, 
   getClients, updatePropertyStatus, updateClientStatus, updateClientNotes,
   deleteProperty, deleteClient, getMatchesForClient, 
-  getMatchesForProperty, MatchResult
+  getMatchesForProperty, MatchResult, seedDatabase, updateProperty, updateClient
 } from './actions';
 
 interface CrmDashboardProps {
@@ -18,7 +20,7 @@ interface CrmDashboardProps {
 }
 
 const TASHKENT_RAYONS = [
-  "Любой (Istalgan)", "Центр (Markaz)",
+  "Любой (Istalgan)", "Центar (Markaz)",
   "Chilonzor", "Yunusobod", "Mirzo Ulugbek", "Yakkasaray", 
   "Mirobod", "Olmazor", "Shayxontohur", "Uchtepa", 
   "Sergeli", "Yashnobod", "Bektemir", "Yangihayot"
@@ -26,14 +28,16 @@ const TASHKENT_RAYONS = [
 
 const TRANSLATIONS = {
   uz: {
+    dashboard: "Tahlil",
     clients: "Mijozlar",
     properties: "Ob'ektlar",
+    marketing: "E'lonlar reyestri",
     newClient: "Yangi Mijoz",
     newProperty: "Yangi Ob'ekt",
-    search: "Qidiruv (Ism, telefon, izohlar, hudud...)",
+    search: "Qidiruv (Ism, telefon, tuman...)",
     statusNew: "Yangi",
     statusNegotiating: "Muzokara",
-    statusClosed: "Yopilgan",
+    statusClosed: "Bitim",
     statusArchived: "Arxiv",
     budget: "Byudjet",
     notes: "Eslatmalar",
@@ -54,14 +58,40 @@ const TRANSLATIONS = {
     allCategories: "Barcha Kategoriyalar",
     allDeals: "Barcha Bitimlar",
     allLocations: "Barcha Hududlar",
-    filters: "Filtrlar:"
+    filters: "Filtrlar:",
+    analytics: "Tahlil & Statistika",
+    totalProperties: "Jami Ob'ektlar",
+    totalClients: "Jami Mijozlar",
+    budgetUnderManagement: "Boshqaruvdagi Byudjet",
+    dealDistribution: "Bitimlar Taqsimoti",
+    saleBuy: "Sotuv / Xarid",
+    rent: "Ijara",
+    categoryDistribution: "Kategoriya Taqsimoti",
+    activeListings: "Faol Ob'ektlar",
+    postTextUz: "Matn (O'zbekcha)",
+    postTextRu: "Matn (Ruscha)",
+    telegramChannel: "Telegram Kanal",
+    olxAd: "OLX E'lon",
+    published: "E'lon qilingan",
+    notPublished: "E'lon qilinmagan",
+    copyText: "Matnni nusxalash",
+    savePost: "E'lonni saqlash",
+    matchingFactorsTitle: "Moslik sabablari:",
+    edit: "Tahrirlash",
+    editClient: "Mijoz ma'lumotlarini tahrirlash",
+    editProperty: "Ob'ekt ma'lumotlarini tahrirlash",
+    seedData: "Namunaviy ma'lumotlarni yuklash",
+    seedPrompt: "Ma'lumotlar bazasi bo'sh. Tizimni sinab ko'rish uchun 1 bosishda Toshkent bo'yicha real namunaviy ma'lumotlarni yuklang!",
+    seedSuccess: "Namunaviy ma'lumotlar muvaffaqiyatli yuklandi!"
   },
   ru: {
+    dashboard: "Аналитика",
     clients: "Клиенты",
     properties: "Объекты",
+    marketing: "Реестр публикаций",
     newClient: "Новый Клиент",
     newProperty: "Новый Объект",
-    search: "Поиск (Имя, телефон, заметки, район...)",
+    search: "Поиск (Имя, телефон, район...)",
     statusNew: "Новые",
     statusNegotiating: "Переговоры",
     statusClosed: "Закрытые",
@@ -85,7 +115,31 @@ const TRANSLATIONS = {
     allCategories: "Все Категории",
     allDeals: "Все Сделки",
     allLocations: "Все Локации",
-    filters: "Фильтры:"
+    filters: "Фильтры:",
+    analytics: "Аналитика и Статистика",
+    totalProperties: "Всего Объектов",
+    totalClients: "Всего Клиентов",
+    budgetUnderManagement: "Бюджет в Управлении",
+    dealDistribution: "Распределение Сделок",
+    saleBuy: "Продажа / Покупка",
+    rent: "Аренда",
+    categoryDistribution: "Распределение Категорий",
+    activeListings: "Активные Объекты",
+    postTextUz: "Текст (Узбекский)",
+    postTextRu: "Текст (Русский)",
+    telegramChannel: "Telegram Канал",
+    olxAd: "Объявление OLX",
+    published: "Опубликовано",
+    notPublished: "Не опубликовано",
+    copyText: "Копировать текст",
+    savePost: "Сохранить публикацию",
+    matchingFactorsTitle: "Факторы совпадения:",
+    edit: "Редактировать",
+    editClient: "Редактировать клиента",
+    editProperty: "Редактировать объект",
+    seedData: "Загрузить демо-данные",
+    seedPrompt: "База данных пуста. Загрузите реальные демо-данные по Ташкенту в 1 клик для тестирования системы!",
+    seedSuccess: "Демо-данные успешно загружены!"
   }
 };
 
@@ -95,7 +149,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
   const [properties, setProperties] = useState<Property[]>(initialProperties);
   const [clients, setClients] = useState<Client[]>(initialClients);
-  const [activeTab, setActiveTab] = useState<'clients' | 'properties'>('clients');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'properties' | 'marketing'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Advanced Filters
@@ -106,10 +160,42 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const [loading, setLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [clientMatches, setClientMatches] = useState<MatchResult[]>([]);
+  const [propertyMatches, setPropertyMatches] = useState<MatchResult[]>([]);
+  const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
 
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isPropModalOpen, setIsPropModalOpen] = useState(false);
+  
+  // Sorting Option
+  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc' | 'area-asc' | 'area-desc' | 'sqm-asc' | 'sqm-desc'>('newest');
+  
+  // Deterministic formatters to completely solve Next.js Hydration Mismatch
+  const formatNumber = (num: number | string | null | undefined): string => {
+    if (num === null || num === undefined) return '0';
+    const parsed = typeof num === 'number' ? num : Number(num);
+    if (isNaN(parsed)) return '0';
+    return parsed.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const formatPrice = (price: number | string | null | undefined): string => {
+    return `$${formatNumber(price)}`;
+  };
+
+  // Editing Modals
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+
+  // Marketing Registry States
+  const [marketingProperty, setMarketingProperty] = useState<Property | null>(null);
+  const [marketingCopyUz, setMarketingCopyUz] = useState('');
+  const [marketingCopyRu, setMarketingCopyRu] = useState('');
+  const [telegramStatus, setTelegramStatus] = useState(false);
+  const [telegramLink, setTelegramLink] = useState('');
+  const [olxStatus, setOlxStatus] = useState(false);
+  const [olxLink, setOlxLink] = useState('');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedLang, setCopiedLang] = useState<'uz' | 'ru' | null>(null);
   
   const [notesTimeout, setNotesTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -125,20 +211,22 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
     async function fetchClientMatches() {
       if (selectedClient?.id) {
         const results = await getMatchesForClient(selectedClient.id);
-        setMatches(results);
+        setClientMatches(results);
       }
     }
     fetchClientMatches();
+    setExpandedMatchId(null);
   }, [selectedClient?.id]);
 
   useEffect(() => {
     async function fetchPropMatches() {
       if (selectedProperty?.id) {
         const results = await getMatchesForProperty(selectedProperty.id);
-        setMatches(results);
+        setPropertyMatches(results);
       }
     }
     fetchPropMatches();
+    setExpandedMatchId(null);
   }, [selectedProperty?.id]);
 
   const handleNotesChange = (clientId: number, newNotes: string) => {
@@ -183,12 +271,10 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const filterTokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
 
   const filteredClients = clients.filter(c => {
-    // 1. Dropdown Filters
     if (filterCategory !== 'all' && c.category !== filterCategory) return false;
     if (filterDeal !== 'all' && c.deal_type !== filterDeal) return false;
     if (filterRayon !== 'all' && (!c.rayons || !c.rayons.includes(filterRayon))) return false;
 
-    // 2. Token-based Multi-field Search
     if (filterTokens.length === 0) return true;
     const searchString = `
       ${c.name} ${c.phone} ${c.notes || ''} 
@@ -201,12 +287,10 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   });
 
   const filteredProperties = properties.filter(p => {
-    // 1. Dropdown Filters
     if (filterCategory !== 'all' && p.category !== filterCategory) return false;
     if (filterDeal !== 'all' && p.deal_type !== filterDeal) return false;
     if (filterRayon !== 'all' && p.rayon !== filterRayon) return false;
 
-    // 2. Token-based Multi-field Search
     if (filterTokens.length === 0) return true;
     const searchString = `
       ${p.title} ${p.rayon} ${p.price} ${p.area} 
@@ -217,45 +301,218 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
     return filterTokens.every(token => searchString.includes(token));
   });
 
-  const pipelineNew = filteredClients.filter(c => c.status === 'active' || !c.status);
-  const pipelineNegotiating = filteredClients.filter(c => c.status === 'negotiating');
-  const pipelineClosed = filteredClients.filter(c => c.status === 'completed');
-  const pipelineArchived = filteredClients.filter(c => c.status === 'archived');
+  // --- SORTING ALGORITHM ---
+  const sortedProperties = [...filteredProperties].sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price - b.price;
+    if (sortBy === 'price-desc') return b.price - a.price;
+    if (sortBy === 'area-asc') return a.area - b.area;
+    if (sortBy === 'area-desc') return b.area - a.area;
+    
+    const sqmA = a.area > 0 ? Math.round(a.price / a.area) : 0;
+    const sqmB = b.area > 0 ? Math.round(b.price / b.area) : 0;
+    if (sortBy === 'sqm-asc') return sqmA - sqmB;
+    if (sortBy === 'sqm-desc') return sqmB - sqmA;
+    
+    return 0; // fallback to newest
+  });
+
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price_max - b.price_max;
+    if (sortBy === 'price-desc') return b.price_max - a.price_max;
+    if (sortBy === 'area-asc') return a.min_area - b.min_area;
+    if (sortBy === 'area-desc') return b.min_area - a.min_area;
+    return 0;
+  });
+
+  const pipelineNew = sortedClients.filter(c => c.status === 'active' || !c.status);
+  const pipelineNegotiating = sortedClients.filter(c => c.status === 'negotiating');
+  const pipelineClosed = sortedClients.filter(c => c.status === 'completed');
+  const pipelineArchived = sortedClients.filter(c => c.status === 'archived');
+
+  // Generate marketing copies
+  const generatePostTexts = (prop: Property) => {
+    const isRent = prop.deal_type === 'rent';
+    const isZhiloy = prop.category === 'zhiloy';
+    const priceText = `$${formatNumber(prop.price)}${isRent ? '/oy' : ''}`;
+    const priceTextRu = `$${formatNumber(prop.price)}${isRent ? '/мес' : ''}`;
+    
+    const rayonUz = prop.rayon === 'Центр (Markaz)' ? 'Tashkent Markazi' : `${prop.rayon} tumani`;
+    const rayonRu = prop.rayon === 'Центр (Markaz)' ? 'Центр Ташкента' : `${prop.rayon} район`;
+
+    const typeUz = prop.type === 'apartment' ? 'Kvartira' : prop.type === 'house' ? 'Hovli / Uchastka' : prop.type === 'office' ? 'Ofis' : 'Tijorat joyi';
+    const typeRu = prop.type === 'apartment' ? 'Квартира' : prop.type === 'house' ? 'Дом / Участок' : prop.type === 'office' ? 'Офис' : 'Коммерческое помещение';
+
+    const uzTemplate = `🌟 **#OBYEKT E'LONI - 55 Kvartal**
+
+🏢 **Turi:** ${typeUz} (${isZhiloy ? 'Turar joy' : 'No-turar joy'})
+📍 **Manzil:** ${rayonUz} ${prop.orientir ? `(Mo'ljal: ${prop.orientir})` : ''}
+📐 **Maydoni:** ${prop.area} m²
+🚪 **Xonalar soni:** ${prop.rooms ? `${prop.rooms} xona` : 'Erkin loyiha'}
+📶 **Qavat:** ${prop.floor ? `${prop.floor}-qavat` : 'N/A'} (Jami: ${prop.max_floor || 'N/A'})
+
+💵 **Narxi:** ${priceText} (${isRent ? 'Ijara' : 'Sotuv'})
+📞 **Aloqa:** ${prop.contact_name || '55 Kvartal Agentlik'}
+📱 **Telefon:** ${prop.contact_phone}
+
+✨ *55Kvartal professional ko'chmas mulk agentligi. Biz bilan eng yaxshi variantlarni topasiz!*`;
+
+    const ruTemplate = `🌟 **#ОБЪЕКТ ОБЪЯВЛЕНИЕ - 55 Kvartal**
+
+🏢 **Тип объекта:** ${typeRu} (${isZhiloy ? 'Жилой фонд' : 'Нежилой фонд'})
+📍 **Адрес:** ${rayonRu} ${prop.orientir ? `(Ориентир: ${prop.orientir})` : ''}
+📐 **Площадь:** ${prop.area} м²
+🚪 **Количество комнат:** ${prop.rooms ? `${prop.rooms} ком.` : 'Свободная планировка'}
+📶 **Этаж:** ${prop.floor ? `${prop.floor}-этаж` : 'N/A'} (Всего: ${prop.max_floor || 'N/A'})
+
+💵 **Цена:** ${priceTextRu} (${isRent ? 'Аренда' : 'Продажа'})
+📞 **Контакты:** ${prop.contact_name || '55 Kvartal Агентство'}
+📱 **Телефон:** ${prop.contact_phone}
+
+✨ *55Kvartal профессиональное агентство недвижимости. С нами вы найдете лучший вариант!*`;
+
+    return { uzTemplate, ruTemplate };
+  };
+
+  // Open marketing drawer and initialize states
+  const openMarketingDrawer = (prop: Property) => {
+    setMarketingProperty(prop);
+    const defaultCopies = generatePostTexts(prop);
+    
+    // Check if custom copies are saved in property details
+    const details = prop.details || {};
+    const savedPosts = details.marketing_posts || {};
+    
+    setMarketingCopyUz(savedPosts.custom_copy_uz || defaultCopies.uzTemplate);
+    setMarketingCopyRu(savedPosts.custom_copy_ru || defaultCopies.ruTemplate);
+    setTelegramStatus(savedPosts.telegram?.published || false);
+    setTelegramLink(savedPosts.telegram?.link || '');
+    setOlxStatus(savedPosts.olx?.published || false);
+    setOlxLink(savedPosts.olx?.link || '');
+  };
+
+  const handleSaveMarketingData = async () => {
+    if (!marketingProperty?.id) return;
+    
+    const updatedDetails = {
+      ...(marketingProperty.details || {}),
+      marketing_posts: {
+        custom_copy_uz: marketingCopyUz,
+        custom_copy_ru: marketingCopyRu,
+        telegram: {
+          published: telegramStatus,
+          link: telegramLink,
+          published_at: telegramStatus ? new Date().toISOString() : null
+        },
+        olx: {
+          published: olxStatus,
+          link: olxLink,
+          published_at: olxStatus ? new Date().toISOString() : null
+        }
+      }
+    };
+
+    const updatedProp: Property = {
+      ...marketingProperty,
+      details: updatedDetails
+    };
+
+    setLoading(true);
+    const res = await updateProperty(marketingProperty.id, updatedProp);
+    setLoading(false);
+    
+    if (res.success) {
+      alert(lang === 'uz' ? "E'lon saqlandi!" : "Публикация сохранена!");
+      setMarketingProperty(null);
+      await refreshData();
+    } else {
+      alert("Error: " + res.error);
+    }
+  };
+
+  // Clipboard copy helper
+  const copyToClipboard = (text: string, id: number, language: 'uz' | 'ru') => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setCopiedLang(language);
+    setTimeout(() => {
+      setCopiedId(null);
+      setCopiedLang(null);
+    }, 1500);
+  };
+
+  // Metric aggregates for dashboard
+  const activePropertiesCount = properties.filter(p => p.status === 'active').length;
+  const archivedPropertiesCount = properties.filter(p => p.status === 'archived').length;
+  const activeClientsCount = clients.filter(c => c.status === 'active' || !c.status).length;
+  const closedClientsCount = clients.filter(c => c.status === 'completed').length;
+
+  const totalClientsBudget = clients
+    .filter(c => c.status === 'active' || !c.status)
+    .reduce((sum, c) => sum + Number(c.price_max), 0);
+
+  const activePropertiesVolume = properties
+    .filter(p => p.status === 'active')
+    .reduce((sum, p) => sum + Number(p.price), 0);
+
+  const dealTypeRentCount = properties.filter(p => p.deal_type === 'rent' && p.status === 'active').length;
+  const dealTypeSaleCount = properties.filter(p => p.deal_type === 'sale' && p.status === 'active').length;
+
+  const catZhiloyCount = properties.filter(p => p.category === 'zhiloy' && p.status === 'active').length;
+  const catNezhiloyCount = properties.filter(p => p.category === 'nezhiloy' && p.status === 'active').length;
 
   return (
-    <div className="flex h-screen bg-white text-black font-sans overflow-hidden selection:bg-black selection:text-white">
+    <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden selection:bg-slate-900 selection:text-white">
       
-      {/* SIDEBAR */}
-      <aside className="w-64 border-r border-gray-200 bg-[#FCFCFC] flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200 font-extrabold text-lg tracking-tighter">
-          55kvartal <span className="text-gray-400 ml-1 font-medium">CRM</span>
+      {/* SIDEBAR - LUXURIOUS SLATE NAVY STYLE */}
+      <aside className="w-68 border-r border-slate-800 bg-[#0F172A] text-slate-300 flex flex-col shrink-0 shadow-xl">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800 gap-2 font-black text-xl tracking-tight text-white">
+          <span className="flex items-center justify-center bg-[#3B82F6] text-white w-8 h-8 rounded-lg shadow-md font-extrabold font-mono">55</span>
+          55kvartal <span className="text-[#38BDF8] font-medium text-xs border border-[#38BDF8]/40 rounded px-1.5 py-0.5 tracking-normal ml-auto font-mono">CRM</span>
         </div>
         
         <nav className="flex-1 py-6 px-4 flex flex-col gap-2">
           <button
+            onClick={() => { setActiveTab('dashboard'); setSelectedClient(null); setSelectedProperty(null); }}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'dashboard' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3"><BarChart3 className="w-4 h-4" /> {t.dashboard}</div>
+          </button>
+
+          <button
             onClick={() => { setActiveTab('clients'); setSelectedClient(null); setSelectedProperty(null); }}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'clients' ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-200 hover:text-black'
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'clients' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><Users className="w-4 h-4" /> {t.clients}</div>
-            {activeTab === 'clients' && <ArrowRight className="w-4 h-4 text-gray-400" />}
           </button>
+
           <button
             onClick={() => { setActiveTab('properties'); setSelectedClient(null); setSelectedProperty(null); }}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'properties' ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-200 hover:text-black'
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'properties' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><Building2 className="w-4 h-4" /> {t.properties}</div>
-            {activeTab === 'properties' && <ArrowRight className="w-4 h-4 text-gray-400" />}
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('marketing'); setSelectedClient(null); setSelectedProperty(null); }}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'marketing' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3"><Megaphone className="w-4 h-4" /> {t.marketing}</div>
           </button>
         </nav>
 
-        <div className="p-4 border-t border-gray-200">
+        {/* Language Switcher Only (Seeder completely removed) */}
+        <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
           <button
             onClick={() => setLang(lang === 'uz' ? 'ru' : 'uz')}
-            className="w-full py-2 px-3 bg-white border border-gray-300 rounded-lg text-xs font-bold hover:border-black transition-colors"
+            className="w-full py-2.5 px-3 bg-[#1E293B] border border-slate-700 text-xs font-black rounded-lg hover:border-slate-500 hover:text-white transition-all tracking-wider text-center cursor-pointer"
           >
             {t.lang}
           </button>
@@ -263,28 +520,28 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#F9FAFB]">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC]">
         {/* TOP BAR */}
-        <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 bg-white shrink-0 z-10">
+        <header className="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white shrink-0 z-10 shadow-sm">
           <div className="flex items-center gap-4 flex-1">
             <div className="relative w-full max-w-xl">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text" 
                 placeholder={t.search} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all"
               />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={refreshData} className="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full transition-all" title={t.refresh}>
+            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title={t.refresh}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button 
               onClick={() => activeTab === 'clients' ? setIsClientModalOpen(true) : setIsPropModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-95"
             >
               <Plus className="w-4 h-4" />
               {activeTab === 'clients' ? t.newClient : t.newProperty}
@@ -292,79 +549,220 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
           </div>
         </header>
 
-        {/* FILTERS BAR */}
-        <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center gap-3 shrink-0">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mr-2">
-            <Filter className="w-3.5 h-3.5" /> {t.filters}
-          </span>
-          <select 
-            value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-            className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-black cursor-pointer hover:bg-gray-100 transition-colors"
-          >
-            <option value="all">{t.allCategories}</option>
-            <option value="zhiloy">Жилой (Zhiloy)</option>
-            <option value="nezhiloy">Нежилой (Nezhiloy)</option>
-          </select>
-          <select 
-            value={filterDeal} onChange={e => setFilterDeal(e.target.value)}
-            className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-black cursor-pointer hover:bg-gray-100 transition-colors"
-          >
-            <option value="all">{t.allDeals}</option>
-            <option value="buy">Buy / Sale</option>
-            <option value="rent">Rent</option>
-          </select>
-          <select 
-            value={filterRayon} onChange={e => setFilterRayon(e.target.value)}
-            className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-black cursor-pointer hover:bg-gray-100 transition-colors"
-          >
-            <option value="all">{t.allLocations}</option>
-            {TASHKENT_RAYONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
+        {/* FILTERS BAR (Show only in List tabs) */}
+        {(activeTab === 'clients' || activeTab === 'properties' || activeTab === 'marketing') && (
+          <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3 shrink-0 scrollbar-none overflow-x-auto shadow-sm w-full">
+            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mr-2">
+              <Filter className="w-3.5 h-3.5" /> {t.filters}
+            </span>
+            <select 
+              value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+              className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+            >
+              <option value="all">{t.allCategories}</option>
+              <option value="zhiloy">Жилой (Zhiloy)</option>
+              <option value="nezhiloy">Нежилой (Nezhiloy)</option>
+            </select>
+            <select 
+              value={filterDeal} onChange={e => setFilterDeal(e.target.value)}
+              className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+            >
+              <option value="all">{t.allDeals}</option>
+              <option value="buy">Buy / Sale</option>
+              <option value="rent">Rent</option>
+            </select>
+            <select 
+              value={filterRayon} onChange={e => setFilterRayon(e.target.value)}
+              className="text-xs font-bold bg-[#F8FAFC] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+            >
+              <option value="all">{t.allLocations}</option>
+              {TASHKENT_RAYONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
 
-        {/* WORKSPACE */}
+            {/* Premium Sorting Dropdown (Connected to state and bilingual) */}
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Sort:</span>
+              <select 
+                value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+                className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+              >
+                <option value="newest">Yangi (Newest)</option>
+                <option value="price-asc">Narx: o'sish (Price: Low to High)</option>
+                <option value="price-desc">Narx: kamayish (Price: High to Low)</option>
+                <option value="area-asc">Maydon: kichikroq (Area: Small to Large)</option>
+                <option value="area-desc">Maydon: kattaroq (Area: Large to Small)</option>
+                {activeTab === 'properties' && <option value="sqm-asc">m² narxi: o'sish (Price/m²: Low to High)</option>}
+                {activeTab === 'properties' && <option value="sqm-desc">m² narxi: kamayish (Price/m²: High to Low)</option>}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* TAB WORKSPACE */}
         <div className="flex-1 overflow-hidden relative">
           
-          {/* CLIENTS KANBAN BOARD */}
+          {/* 1. ANALYTICS DASHBOARD VIEW */}
+          {activeTab === 'dashboard' && (
+            <div className="h-full overflow-y-auto p-6 flex flex-col gap-6">
+              
+              {/* Aggregates row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.totalProperties}</span>
+                    <span className="text-4xl font-black text-[#0F172A] mt-1.5">{formatNumber(activePropertiesCount)}</span>
+                    <span className="text-[10px] text-slate-400 font-bold mt-2">{formatNumber(archivedPropertiesCount)} Archived</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Building2 className="w-6 h-6" /></div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.totalClients}</span>
+                    <span className="text-4xl font-black text-[#0F172A] mt-1.5">{formatNumber(activeClientsCount)}</span>
+                    <span className="text-[10px] text-emerald-600 font-extrabold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {formatNumber(closedClientsCount)} Bitim yopildi</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Users className="w-6 h-6" /></div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.activeListings} (Vol)</span>
+                    <span className="text-4xl font-black text-[#0F172A] mt-1.5 font-mono">{formatPrice(activePropertiesVolume)}</span>
+                    <span className="text-[10px] text-slate-400 font-bold mt-2">{formatNumber(dealTypeSaleCount)} Sotuv / {formatNumber(dealTypeRentCount)} Ijara</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><DollarSign className="w-6 h-6" /></div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.budgetUnderManagement}</span>
+                    <span className="text-4xl font-black text-[#0F172A] mt-1.5 font-mono">{formatPrice(totalClientsBudget)}</span>
+                    <span className="text-[10px] text-slate-400 font-bold mt-2">Max client target liquidity</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Tag className="w-6 h-6" /></div>
+                </div>
+              </div>
+
+              {/* Graphical Summaries row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Deal distributions */}
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-sky-500" /> {t.dealDistribution} (Bitimlar taqsimoti)
+                  </h3>
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                        <span>Sotuv / Xarid (Sale / Buy)</span>
+                        <span>{dealTypeSaleCount} ta ({Math.round(dealTypeSaleCount / (activePropertiesCount || 1) * 100)}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden">
+                        <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${(dealTypeSaleCount / (activePropertiesCount || 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                        <span>Ijara (Rent)</span>
+                        <span>{dealTypeRentCount} ta ({Math.round(dealTypeRentCount / (activePropertiesCount || 1) * 100)}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden">
+                        <div className="bg-orange-500 h-full rounded-full transition-all duration-500" style={{ width: `${(dealTypeRentCount / (activePropertiesCount || 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category distributions */}
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-sky-500" /> {t.categoryDistribution} (Zhiloy vs Nezhiloy)
+                  </h3>
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                        <span>Turar Joy (Жилой фонд)</span>
+                        <span>{catZhiloyCount} ta ({Math.round(catZhiloyCount / (activePropertiesCount || 1) * 100)}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden">
+                        <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${(catZhiloyCount / (activePropertiesCount || 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                        <span>No-turar Joy (Нежилой фонд)</span>
+                        <span>{catNezhiloyCount} ta ({Math.round(catNezhiloyCount / (activePropertiesCount || 1) * 100)}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden">
+                        <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${(catNezhiloyCount / (activePropertiesCount || 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Popular Tashkent Districts in demand */}
+              <div className="bg-white border border-slate-100 shadow-sm rounded-2xl p-6">
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4">Toshkent tumanlari bo'yicha ko'rsatkich</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {TASHKENT_RAYONS.filter(r => !r.includes('Любой') && !r.includes('Центar')).map(rayon => {
+                    const count = properties.filter(p => p.rayon.toLowerCase() === rayon.toLowerCase() && p.status === 'active').length;
+                    return (
+                      <div key={rayon} className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center flex flex-col justify-center shadow-xs">
+                        <span className="text-xs font-black text-slate-800">{rayon}</span>
+                        <span className="text-lg font-black text-slate-900 mt-1">{count} <span className="text-[10px] text-slate-400 font-semibold">ta</span></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 2. CLIENTS PIPELINE (KANBAN BOARD) */}
           {activeTab === 'clients' && (
-            <div className="h-full flex overflow-x-auto p-6 gap-6">
+            <div className="h-full flex overflow-x-auto p-6 gap-6 scrollbar-thin">
               {[
-                { title: t.statusNew, items: pipelineNew },
-                { title: t.statusNegotiating, items: pipelineNegotiating },
-                { title: t.statusClosed, items: pipelineClosed },
-                { title: t.statusArchived, items: pipelineArchived },
+                { title: t.statusNew, items: pipelineNew, borderStyle: 'border-t-blue-500' },
+                { title: t.statusNegotiating, items: pipelineNegotiating, borderStyle: 'border-t-amber-500' },
+                { title: t.statusClosed, items: pipelineClosed, borderStyle: 'border-t-emerald-500' },
+                { title: t.statusArchived, items: pipelineArchived, borderStyle: 'border-t-slate-400' },
               ].map(column => (
                 <div key={column.title} className="flex-1 min-w-[280px] max-w-[350px] flex flex-col">
                   <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-xs font-extrabold text-gray-500 uppercase tracking-widest">{column.title}</h3>
-                    <span className="text-[10px] font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{column.items.length}</span>
+                    <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest">{column.title}</h3>
+                    <span className="text-[10px] font-extrabold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{column.items.length}</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6">
+                  <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none">
                     {column.items.map(client => (
                       <div 
                         key={client.id}
                         onClick={() => setSelectedClient(client)}
-                        className={`bg-white border p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                          selectedClient?.id === client.id ? 'border-black ring-2 ring-black/10' : 'border-gray-200 hover:border-gray-400'
+                        className={`bg-white border-t-2 ${column.borderStyle} border-x border-b p-4.5 rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                          selectedClient?.id === client.id ? 'ring-2 ring-slate-900 border-slate-900' : 'border-slate-200/80 hover:border-slate-400'
                         }`}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                           <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${client.category === 'zhiloy' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                             {client.category === 'zhiloy' ? 'Жилой' : 'Нежилой'}
+                        <div className="flex justify-between items-start mb-2.5">
+                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-[#0F172A]">
+                             {client.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
                            </span>
-                           <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${client.deal_type === 'rent' ? 'bg-orange-50 text-orange-700' : 'bg-green-50 text-green-700'}`}>
+                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#1E3A8A]/5 text-[#1E3A8A] border border-[#1E3A8A]/20">
                              {client.deal_type === 'rent' ? 'Rent' : 'Buy'}
                            </span>
                         </div>
-                        <div className="font-bold text-sm mb-1.5 text-gray-900">{client.name}</div>
-                        <div className="text-xs text-gray-500 mb-3 flex items-center gap-1.5 font-medium">
-                          <Phone className="w-3.5 h-3.5 text-gray-400" /> {client.phone}
+                        <div className="font-black text-lg mb-1 text-[#0F172A] tracking-tight leading-snug">{client.name}</div>
+                        <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-semibold">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone}
                         </div>
-                        <div className="text-xs font-bold text-gray-900 bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 inline-block font-mono">
-                          ${client.price_min ? `${client.price_min} - ` : ''}{client.price_max} {client.deal_type === 'rent' ? '/mo' : ''}
+                        <div className="text-sm font-black text-[#1E3A8A] bg-[#1E3A8A]/5 border border-[#1E3A8A]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
+                          {client.price_min ? `${formatPrice(client.price_min)} - ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/mo' : ''}
                         </div>
                         {client.notes && (
-                          <div className="mt-3 text-xs text-gray-600 line-clamp-2 border-t border-gray-100 pt-2.5 leading-relaxed">
+                          <div className="mt-3 text-xs text-slate-600 line-clamp-2 border-t border-slate-100 pt-2.5 leading-relaxed font-medium">
                             {client.notes}
                           </div>
                         )}
@@ -376,42 +774,254 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
           )}
 
-          {/* PROPERTIES LIST */}
+          {/* 3. PROPERTIES GRID LIST */}
           {activeTab === 'properties' && (
-            <div className="h-full overflow-y-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredProperties.map(prop => (
-                  <div 
-                    key={prop.id}
-                    onClick={() => setSelectedProperty(prop)}
-                    className={`bg-white border p-5 rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between ${
-                      selectedProperty?.id === prop.id ? 'border-black ring-2 ring-black/10' : 'border-gray-200 hover:border-gray-400'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-3">
-                        <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${prop.category === 'zhiloy' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                          {prop.category === 'zhiloy' ? 'Жилой' : 'Нежилой'}
-                        </span>
-                        <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${prop.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {prop.status === 'active' ? 'Active' : 'Archive'}
-                        </span>
+            <div className="h-full overflow-y-auto p-6 scrollbar-thin">
+              {sortedProperties.length === 0 ? (
+                <div className="text-center py-20 bg-white border border-dashed border-slate-200 rounded-2xl">
+                  <Building2 className="w-10 h-10 mx-auto text-slate-300" />
+                  <h3 className="font-bold text-slate-900 mt-3">Hech qanday ob'ekt topilmadi</h3>
+                  <p className="text-xs text-slate-400 mt-1">Yangi ob'ekt qo'shing yoki qidiruv parametrlarini o'zgartiring.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {sortedProperties.map(prop => {
+                    const pricePerM2 = prop.area > 0 ? Math.round(prop.price / prop.area) : 0;
+                    return (
+                      <div 
+                        key={prop.id}
+                        onClick={() => setSelectedProperty(prop)}
+                        className={`bg-white border p-5 rounded-xl shadow-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between ${
+                          selectedProperty?.id === prop.id ? 'ring-2 ring-slate-900 border-slate-900' : 'border-slate-200 hover:border-slate-400'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-3">
+                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.category === 'zhiloy' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                              {prop.category === 'zhiloy' ? 'Жилой' : 'Нежилой'}
+                            </span>
+                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {prop.status === 'active' ? 'Active' : 'Archive'}
+                            </span>
+                          </div>
+                          
+                          <div className="font-extrabold text-base mb-1.5 text-slate-950 leading-snug">{prop.title}</div>
+                          
+                          <div className="text-xs text-slate-500 mb-2 flex items-center gap-1.5 font-semibold">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" /> {prop.rayon}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="text-[10px] font-extrabold text-[#1E3A8A] bg-[#1E3A8A]/5 border border-[#1E3A8A]/20 px-2.5 py-0.5 rounded font-mono">
+                              {formatPrice(pricePerM2)}/m²
+                            </span>
+                            <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest bg-slate-100 border border-slate-200/50 px-2 py-0.5 rounded">
+                              {prop.deal_type === 'rent' ? 'Rent' : 'Sale'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-slate-400 uppercase font-bold">{t.area}</span> 
+                              <span className="font-bold text-slate-900">{prop.area} m²</span>
+                            </div>
+                            {prop.rooms && (
+                              <div className="flex flex-col">
+                                <span className="text-[9px] text-slate-400 uppercase font-bold">{t.rooms}</span> 
+                                <span className="font-bold text-slate-900">{prop.rooms} xona</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="text-2xl font-black text-[#0F172A] border-t border-slate-100 pt-3 flex items-center justify-between">
+                          <span className="font-mono">{formatPrice(prop.price)}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{prop.deal_type === 'rent' ? '/mo' : ''}</span>
+                        </div>
                       </div>
-                      <div className="font-bold text-sm mb-1.5 text-gray-900 leading-snug">{prop.title}</div>
-                      <div className="text-xs text-gray-500 mb-4 flex items-center gap-1.5 font-medium">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400" /> {prop.rayon}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-4 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                        <div className="flex flex-col"><span className="text-[10px] text-gray-400 uppercase font-bold">{t.area}</span> <span className="font-bold text-gray-900">{prop.area} m²</span></div>
-                        {prop.rooms && <div className="flex flex-col"><span className="text-[10px] text-gray-400 uppercase font-bold">{t.rooms}</span> <span className="font-bold text-gray-900">{prop.rooms}</span></div>}
-                      </div>
-                    </div>
-                    <div className="text-lg font-extrabold text-black border-t border-gray-100 pt-3 flex items-center justify-between">
-                      <span className="font-mono">${prop.price.toLocaleString()}</span>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">{prop.deal_type === 'rent' ? '/mo' : ''}</span>
-                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. POST REGISTRY (MARKETING MANAGER) */}
+          {activeTab === 'marketing' && (
+            <div className="h-full overflow-y-auto p-6 scrollbar-thin">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* List of properties ready for Telegram / OLX */}
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-sky-500" /> {t.marketing} (Marketing ro'yxati)
+                  </h3>
+                  <div className="flex flex-col gap-3.5 overflow-y-auto max-h-[70vh] pr-2 scrollbar-thin">
+                    {filteredProperties.map(prop => {
+                      const details = prop.details || {};
+                      const marketing = details.marketing_posts || {};
+                      const tgPub = marketing.telegram?.published;
+                      const olxPub = marketing.olx?.published;
+                      
+                      return (
+                        <div 
+                          key={prop.id}
+                          onClick={() => openMarketingDrawer(prop)}
+                          className={`bg-white border p-4.5 rounded-xl shadow-xs cursor-pointer hover:border-slate-400 transition-all ${
+                            marketingProperty?.id === prop.id ? 'ring-2 ring-slate-900 border-slate-900' : 'border-slate-200'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-black text-slate-900">{prop.title}</span>
+                            <span className="text-xs font-mono font-bold text-slate-950">{formatPrice(prop.price)}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-semibold mb-3 flex items-center gap-1.5">
+                            <MapPin className="w-3 h-3" /> {prop.rayon} • {prop.area} m²
+                          </div>
+                          
+                          {/* Post status badges */}
+                          <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
+                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                              tgPub ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-slate-50 text-slate-400 border border-slate-100'
+                            }`}>
+                              Telegram {tgPub ? '✅' : '❌'}
+                            </span>
+                            <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                              olxPub ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-100'
+                            }`}>
+                              OLX {olxPub ? '✅' : '❌'}
+                            </span>
+                            
+                            <button 
+                              type="button" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const copies = generatePostTexts(prop);
+                                copyToClipboard(copies.uzTemplate, prop.id!, 'uz');
+                              }}
+                              className="text-[9px] font-extrabold text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-black px-2 py-0.5 rounded-md ml-auto flex items-center gap-1 transition-all"
+                            >
+                              {copiedId === prop.id ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />}
+                              Copy Copy (UZ)
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+                </div>
+
+                {/* Edit marketing texts / links */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+                  {marketingProperty ? (
+                    <>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div>
+                          <h4 className="font-extrabold text-slate-900 leading-snug">{marketingProperty.title}</h4>
+                          <span className="text-xs font-semibold text-slate-400">Manage Marketing & Ad Copies</span>
+                        </div>
+                        <button onClick={() => setMarketingProperty(null)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-black transition-all">
+                          <X className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+
+                      {/* UZ/RU Custom Copy Textareas */}
+                      <div className="flex flex-col gap-4.5">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            {t.postTextUz} 
+                            <button 
+                              onClick={() => copyToClipboard(marketingCopyUz, marketingProperty.id!, 'uz')}
+                              className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline ml-auto flex items-center gap-0.5"
+                            >
+                              {copiedId === marketingProperty.id && copiedLang === 'uz' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                              {t.copyText}
+                            </button>
+                          </label>
+                          <textarea 
+                            value={marketingCopyUz}
+                            onChange={e => setMarketingCopyUz(e.target.value)}
+                            className="w-full text-xs font-medium font-mono p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-slate-900 min-h-[140px] resize-y leading-relaxed"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            {t.postTextRu}
+                            <button 
+                              onClick={() => copyToClipboard(marketingCopyRu, marketingProperty.id!, 'ru')}
+                              className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline ml-auto flex items-center gap-0.5"
+                            >
+                              {copiedId === marketingProperty.id && copiedLang === 'ru' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                              {t.copyText}
+                            </button>
+                          </label>
+                          <textarea 
+                            value={marketingCopyRu}
+                            onChange={e => setMarketingCopyRu(e.target.value)}
+                            className="w-full text-xs font-medium font-mono p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-slate-900 min-h-[140px] resize-y leading-relaxed"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Publishing tracking form */}
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4.5 flex flex-col gap-4">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Publishing Status Tracker</span>
+                        
+                        <div className="flex flex-col gap-2.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={telegramStatus} onChange={e => setTelegramStatus(e.target.checked)} className="rounded text-slate-900 focus:ring-0 w-4 h-4 cursor-pointer" />
+                              {t.telegramChannel} ({t.published})
+                            </label>
+                          </div>
+                          {telegramStatus && (
+                            <input 
+                              type="text" 
+                              placeholder="Channel post link (e.g. t.me/...)" 
+                              value={telegramLink}
+                              onChange={e => setTelegramLink(e.target.value)}
+                              className="text-xs font-medium border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-slate-900"
+                            />
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={olxStatus} onChange={e => setOlxStatus(e.target.checked)} className="rounded text-slate-900 focus:ring-0 w-4 h-4 cursor-pointer" />
+                              {t.olxAd} ({t.published})
+                            </label>
+                          </div>
+                          {olxStatus && (
+                            <input 
+                              type="text" 
+                              placeholder="OLX ad link..." 
+                              value={olxLink}
+                              onChange={e => setOlxLink(e.target.value)}
+                              className="text-xs font-medium border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-slate-900"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <button 
+                        type="button" 
+                        onClick={handleSaveMarketingData}
+                        className="w-full py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        {t.savePost}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center py-24 text-slate-400">
+                      <Megaphone className="w-12 h-12 mx-auto mb-4 text-slate-200 animate-bounce" />
+                      <h4 className="font-bold text-slate-900">Marketing Panel</h4>
+                      <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Ob'ektlardan birini tanlang va professional Telegram/OLX e'lonlarini avtomatik yarating.</p>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -419,30 +1029,37 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
         </div>
       </main>
 
-      {/* RIGHT DRAWER: CLIENT DETAILS */}
+      {/* 5. RIGHT DRAWER: CLIENT DETAILS */}
       {selectedClient && (
-        <aside className="w-[400px] border-l border-gray-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
-          <div className="h-16 border-b border-gray-200 flex items-center justify-between px-6 shrink-0 bg-gray-50/50">
-            <h2 className="font-bold text-sm uppercase tracking-wider text-gray-500">{t.clients} Detail</h2>
-            <button onClick={() => setSelectedClient(null)} className="p-1.5 hover:bg-gray-200 rounded-md text-gray-500 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+        <aside className="w-[420px] border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
+          <div className="h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-slate-50/50">
+            <h2 className="font-black text-xs uppercase tracking-wider text-slate-400">{t.clients} Details</h2>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setEditingClient(selectedClient)} 
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors"
+                title={t.edit}
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+              <button onClick={() => setSelectedClient(null)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
-            
-            {/* Header Info */}
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
             <div>
-              <h1 className="text-2xl font-black mb-1.5 text-gray-900 tracking-tight">{selectedClient.name}</h1>
-              <a href={`tel:${selectedClient.phone}`} className="text-sm font-medium text-gray-600 hover:text-black flex items-center gap-2 mb-4 w-fit px-2 py-1 bg-gray-50 rounded-md border border-gray-200">
+              <h1 className="text-2xl font-black mb-1.5 text-slate-950 tracking-tight leading-tight">{selectedClient.name}</h1>
+              <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-slate-600 hover:text-black flex items-center gap-2 mb-4 w-fit px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-200/60 font-mono">
                 <Phone className="w-3.5 h-3.5" /> {selectedClient.phone}
               </a>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pipeline Status</label>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Pipeline Status</label>
                 <select 
                   value={selectedClient.status || 'active'}
                   onChange={(e) => handleClientStatusChange(selectedClient.id!, e.target.value)}
-                  className="text-sm font-bold bg-white border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black shadow-sm transition-all cursor-pointer w-full"
+                  className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-slate-900 shadow-xs cursor-pointer w-full"
                 >
                   <option value="active">{t.statusNew} (Active)</option>
                   <option value="negotiating">{t.statusNegotiating} (In Progress)</option>
@@ -452,100 +1069,147 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               </div>
             </div>
 
-            {/* Criteria */}
-            <div className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 text-sm shadow-sm">
-              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Client Requirements</h3>
+            {/* Criteria display */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs shadow-xs">
+              <h3 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3.5">Client Requirements</h3>
               <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Type</span>
-                  <span className="font-semibold text-gray-900">{selectedClient.category === 'zhiloy' ? 'Жилой' : 'Нежилой'} - <span className="capitalize">{selectedClient.deal_type}</span></span>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Category</span>
+                  <span className="font-bold text-slate-950">{selectedClient.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">{t.budget}</span>
-                  <span className="font-mono font-bold text-black">${selectedClient.price_min || 0} - ${selectedClient.price_max}</span>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Deal Type</span>
+                  <span className="font-bold text-slate-950 capitalize">{selectedClient.deal_type}</span>
                 </div>
+                <div>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.budget}</span>
+                  <span className="font-mono font-black text-slate-900">{selectedClient.price_min ? `${formatPrice(selectedClient.price_min)} - ` : ''}{formatPrice(selectedClient.price_max)}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.area}</span>
+                  <span className="font-bold text-slate-950">&gt;= {selectedClient.min_area} m²</span>
+                </div>
+                {selectedClient.rooms && (
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.rooms}</span>
+                    <span className="font-bold text-slate-950">{selectedClient.rooms}</span>
+                  </div>
+                )}
+                {selectedClient.orientir && (
+                  <div className="col-span-2">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Orientir</span>
+                    <span className="font-semibold text-slate-700 leading-relaxed block">{selectedClient.orientir}</span>
+                  </div>
+                )}
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Locations (Rayons)</span>
-                  <div className="flex flex-wrap gap-1.5">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-1.5">Locations (Rayons)</span>
+                  <div className="flex flex-wrap gap-1">
                     {selectedClient.rayons?.length ? selectedClient.rayons.map(r => (
-                      <span key={r} className="text-xs font-bold bg-black text-white px-2 py-0.5 rounded-md">{r}</span>
-                    )) : <span className="text-xs font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md">Any Location</span>}
+                      <span key={r} className="text-[10px] font-bold bg-[#0F172A] text-white px-2 py-0.5 rounded">{r}</span>
+                    )) : <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Any Location</span>}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Notes Editor */}
+            {/* Notes textarea with autosaving */}
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">{t.notes} (Auto-saving)</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block">{t.notes} (Auto-saving)</label>
               <textarea
                 value={selectedClient.notes || ''}
                 onChange={(e) => handleNotesChange(selectedClient.id!, e.target.value)}
-                placeholder="Start typing to auto-save notes..."
-                className="w-full text-sm font-medium p-4 border border-gray-300 rounded-xl min-h-[120px] outline-none focus:border-black focus:ring-2 focus:ring-black/5 resize-y transition-shadow bg-gray-50 focus:bg-white leading-relaxed"
+                placeholder="Start typing client notes here..."
+                className="w-full text-xs font-semibold p-4 border border-slate-200 rounded-2xl min-h-[100px] outline-none focus:border-slate-900 focus:bg-white resize-y transition-shadow bg-slate-50 leading-relaxed"
               />
             </div>
 
-            {/* Matches */}
+            {/* Matches with detailed factors dropdown */}
             <div>
-              <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                   {t.matchedProperties}
                 </label>
-                <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 rounded-full">{matches.length}</span>
+                <span className="text-[10px] font-extrabold bg-[#0F172A] text-white px-2.5 py-0.5 rounded-full shadow-xs">{clientMatches.length}</span>
               </div>
               
-              {matches.length === 0 ? (
-                <div className="text-sm text-gray-500 py-6 text-center border-2 border-dashed border-gray-200 rounded-xl font-medium">{t.noMatches}</div>
+              {clientMatches.length === 0 ? (
+                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl font-semibold">{t.noMatches}</div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {matches.map((m, i) => (
-                    <div key={i} className="border border-gray-200 rounded-xl p-3.5 text-sm flex flex-col gap-1.5 relative bg-white shadow-sm hover:border-black transition-colors cursor-pointer group">
-                      <div className="absolute top-0 right-0 bg-black text-white text-[10px] font-bold px-2 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
+                  {clientMatches.map((m, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => setExpandedMatchId(expandedMatchId === m.property!.id ? null : m.property!.id!)}
+                      className="border border-slate-200 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-slate-900 transition-colors cursor-pointer group"
+                    >
+                      <div className="absolute top-0 right-0 bg-[#0F172A] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
                         {m.score}% Match
                       </div>
-                      <div className="font-bold text-gray-900 pr-16 truncate group-hover:underline">{m.property!.title}</div>
-                      <div className="text-xs text-gray-500 font-medium flex items-center gap-1"><MapPin className="w-3 h-3" /> {m.property!.rayon}</div>
-                      <div className="font-mono font-bold text-black mt-1">${m.property!.price.toLocaleString()}</div>
+                      <div className="font-bold text-slate-950 pr-16 truncate group-hover:underline flex items-center gap-1">
+                        {m.property!.title}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1"><MapPin className="w-3 h-3" /> {m.property!.rayon}</div>
+                      <div className="font-mono font-black text-slate-900 mt-1">{formatPrice(m.property!.price)}</div>
+                      
+                      {/* Matching factors toggler */}
+                      <div className="flex items-center gap-1 text-[10px] text-sky-600 font-bold mt-1">
+                        {t.matchingFactorsTitle} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedMatchId === m.property!.id ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      {expandedMatchId === m.property!.id && (
+                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-slate-50/70 p-2.5 rounded-lg">
+                          {m.matchingFactors.map((factor, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-600 font-semibold">
+                              <span className="text-emerald-500 font-black">✓</span> {factor}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
             
-            {/* Delete button */}
-            <div className="mt-auto pt-8 flex justify-center">
-               <button onClick={deleteSelectedClient} className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all">
-                 Delete Client Permanently
+            <div className="mt-auto pt-8 flex justify-center border-t border-slate-100">
+               <button onClick={deleteSelectedClient} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all">
+                 Delete Client permanently
                </button>
             </div>
           </div>
         </aside>
       )}
 
-      {/* RIGHT DRAWER: PROPERTY DETAILS */}
+      {/* 6. RIGHT DRAWER: PROPERTY DETAILS */}
       {selectedProperty && (
-        <aside className="w-[400px] border-l border-gray-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
-          <div className="h-16 border-b border-gray-200 flex items-center justify-between px-6 shrink-0 bg-gray-50/50">
-            <h2 className="font-bold text-sm uppercase tracking-wider text-gray-500">{t.properties} Detail</h2>
-            <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-gray-200 rounded-md text-gray-500 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+        <aside className="w-[420px] border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
+          <div className="h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-slate-50/50">
+            <h2 className="font-black text-xs uppercase tracking-wider text-slate-400">{t.properties} Details</h2>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setEditingProperty(selectedProperty)} 
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors"
+                title={t.edit}
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+              <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
-            
-            {/* Header Info */}
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
             <div>
-              <h1 className="text-2xl font-black mb-2 text-gray-900 tracking-tight leading-tight">{selectedProperty.title}</h1>
-              <div className="text-2xl font-mono font-bold text-black mb-4">${selectedProperty.price.toLocaleString()}</div>
+              <h1 className="text-2xl font-black mb-2 text-slate-950 tracking-tight leading-tight">{selectedProperty.title}</h1>
+              <div className="text-2xl font-mono font-black text-slate-950 mb-4">{formatPrice(selectedProperty.price)}</div>
               
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Listing Status</label>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Listing Status</label>
                 <select 
                   value={selectedProperty.status || 'active'}
                   onChange={(e) => handlePropertyStatusChange(selectedProperty.id!, e.target.value)}
-                  className="text-sm font-bold bg-white border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-black shadow-sm transition-all cursor-pointer w-full"
+                  className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-slate-900 shadow-xs cursor-pointer w-full"
                 >
                   <option value="active">Active Listing</option>
                   <option value="archived">Archived / Sold</option>
@@ -553,100 +1217,157 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               </div>
             </div>
 
-            {/* Criteria */}
-            <div className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 text-sm shadow-sm">
-              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Property Specs</h3>
+            {/* Criteria Specs */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs shadow-xs">
+              <h3 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3.5">Property Specs</h3>
               <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Type</span>
-                  <span className="font-semibold text-gray-900">{selectedProperty.category === 'zhiloy' ? 'Жилой' : 'Нежилой'}</span>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Category</span>
+                  <span className="font-bold text-slate-950">{selectedProperty.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Location</span>
-                  <span className="font-semibold text-gray-900 flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {selectedProperty.rayon}</span>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Deal Type</span>
+                  <span className="font-bold text-slate-950 capitalize">{selectedProperty.deal_type}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">{t.area}</span>
-                  <span className="font-bold text-black">{selectedProperty.area} m²</span>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Location</span>
+                  <span className="font-bold text-slate-950 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.rayon}</span>
+                </div>
+                {selectedProperty.orientir && (
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Orientir</span>
+                    <span className="font-bold text-slate-950">{selectedProperty.orientir}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.area}</span>
+                  <span className="font-black text-slate-900">{selectedProperty.area} m²</span>
                 </div>
                 {selectedProperty.rooms && (
                   <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">{t.rooms}</span>
-                    <span className="font-bold text-black">{selectedProperty.rooms}</span>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.rooms}</span>
+                    <span className="font-black text-slate-900">{selectedProperty.rooms} xona</span>
+                  </div>
+                )}
+                {selectedProperty.floor !== null && (
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Qavat (Floor)</span>
+                    <span className="font-bold text-slate-950">{selectedProperty.floor} / {selectedProperty.max_floor || 'N/A'}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Contact */}
-            <div className="border border-gray-200 rounded-xl p-5 text-sm shadow-sm bg-white">
-               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Owner Contact</span>
-               <div className="font-bold text-gray-900 mb-1.5">{selectedProperty.contact_name || 'No name provided'}</div>
-               <a href={`tel:${selectedProperty.contact_phone}`} className="text-sm font-bold text-black hover:underline flex items-center gap-1.5 w-fit px-2 py-1 bg-gray-50 rounded-md border border-gray-200">
-                <Phone className="w-3.5 h-3.5" /> {selectedProperty.contact_phone}
+            {/* Owner Contact */}
+            <div className="border border-slate-200/70 rounded-2xl p-5 text-xs shadow-xs bg-white">
+               <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Owner Contact</span>
+               <div className="font-bold text-slate-900 mb-1.5">{selectedProperty.contact_name || 'No name provided'}</div>
+               <a href={`tel:${selectedProperty.contact_phone}`} className="text-xs font-bold text-slate-900 hover:text-black flex items-center gap-1.5 w-fit px-2.5 py-1 bg-slate-50 border border-slate-200/60 rounded-lg">
+                <Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.contact_phone}
               </a>
             </div>
 
-            {/* Matches */}
+            {/* Matches with detailed factors dropdown */}
             <div>
-              <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                   {t.matchedClients}
                 </label>
-                <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 rounded-full">{matches.length}</span>
+                <span className="text-[10px] font-extrabold bg-[#0F172A] text-white px-2.5 py-0.5 rounded-full shadow-xs">{propertyMatches.length}</span>
               </div>
-              {matches.length === 0 ? (
-                <div className="text-sm text-gray-500 py-6 text-center border-2 border-dashed border-gray-200 rounded-xl font-medium">{t.noMatches}</div>
+              
+              {propertyMatches.length === 0 ? (
+                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl font-semibold">{t.noMatches}</div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {matches.map((m, i) => (
-                    <div key={i} className="border border-gray-200 rounded-xl p-3.5 text-sm flex flex-col gap-1.5 relative bg-white shadow-sm hover:border-black transition-colors cursor-pointer group">
-                      <div className="absolute top-0 right-0 bg-black text-white text-[10px] font-bold px-2 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
+                  {propertyMatches.map((m, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => setExpandedMatchId(expandedMatchId === m.client!.id ? null : m.client!.id!)}
+                      className="border border-slate-200 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-slate-900 transition-colors cursor-pointer group"
+                    >
+                      <div className="absolute top-0 right-0 bg-[#0F172A] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
                         {m.score}% Match
                       </div>
-                      <div className="font-bold text-gray-900 pr-16 group-hover:underline">{m.client!.name}</div>
-                      <div className="text-xs text-gray-500 font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400" /> {m.client!.phone}</div>
-                      <div className="font-mono font-bold text-black mt-1">${m.client!.price_min} - ${m.client!.price_max}</div>
+                      <div className="font-bold text-slate-950 pr-16 group-hover:underline">{m.client!.name}</div>
+                      <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" /> {m.client!.phone}</div>
+                      <div className="font-mono font-black text-slate-900 mt-1">{formatPrice(m.client!.price_min)} - {formatPrice(m.client!.price_max)}</div>
+                      
+                      {/* Factors toggler */}
+                      <div className="flex items-center gap-1 text-[10px] text-sky-600 font-bold mt-1">
+                        {t.matchingFactorsTitle} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedMatchId === m.client!.id ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      {expandedMatchId === m.client!.id && (
+                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-slate-50/70 p-2.5 rounded-lg">
+                          {m.matchingFactors.map((factor, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-600 font-semibold">
+                              <span className="text-emerald-500 font-black">✓</span> {factor}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
             
-            <div className="mt-auto pt-8 flex justify-center">
-               <button onClick={deleteSelectedProperty} className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-lg transition-all">
-                 Delete Property Permanently
+            <div className="mt-auto pt-8 flex justify-center border-t border-slate-100">
+               <button onClick={deleteSelectedProperty} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all">
+                 Delete Property permanently
                </button>
             </div>
           </div>
         </aside>
       )}
 
-      {/* SIMPLE FORMS (Client & Property) */}
+      {/* 7. CLIENT CREATION MODAL */}
       <SimpleClientModal 
         isOpen={isClientModalOpen} 
         onClose={() => setIsClientModalOpen(false)} 
         onSuccess={async () => { setIsClientModalOpen(false); await refreshData(); }} 
       />
       
+      {/* 8. PROPERTY CREATION MODAL */}
       <SimplePropertyModal 
         isOpen={isPropModalOpen} 
         onClose={() => setIsPropModalOpen(false)} 
         onSuccess={async () => { setIsPropModalOpen(false); await refreshData(); }} 
       />
+
+      {/* 9. CLIENT EDITING MODAL */}
+      {editingClient && (
+        <EditClientModal 
+          client={editingClient}
+          isOpen={!!editingClient}
+          onClose={() => setEditingClient(null)}
+          onSuccess={async () => { setEditingClient(null); setSelectedClient(null); await refreshData(); }}
+        />
+      )}
+
+      {/* 10. PROPERTY EDITING MODAL */}
+      {editingProperty && (
+        <EditPropertyModal 
+          property={editingProperty}
+          isOpen={!!editingProperty}
+          onClose={() => setEditingProperty(null)}
+          onSuccess={async () => { setEditingProperty(null); setSelectedProperty(null); await refreshData(); }}
+        />
+      )}
       
     </div>
   );
 }
 
 // ------------------------------------------------------------------------------------------------
-// PREMIUM MODALS
+// PREMIUM CLIENT / PROPERTY CREATION MODALS
 // ------------------------------------------------------------------------------------------------
 
 function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
   const [form, setForm] = useState({
     name: '', phone: '', category: 'zhiloy', type: 'apartment', deal_type: 'buy',
-    price_min: '', price_max: '', rayons: [] as string[], min_area: '', rooms: '', notes: ''
+    price_min: '', price_max: '', rayons: [] as string[], min_area: '', rooms: '', notes: '', orientir: ''
   });
 
   if (!isOpen) return null;
@@ -656,9 +1377,9 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
     if (!form.name || !form.phone || !form.price_max) return alert('Name, Phone, and Max Budget are required.');
     
     await addClient({
-      name: form.name, phone: form.phone, category: form.category as any, type: form.type,
+      name: form.name, phone: form.phone, category: form.category as any, type: form.type === 'any' ? null : form.type,
       deal_type: form.deal_type as any, price_min: Number(form.price_min) || 0, price_max: Number(form.price_max),
-      rayons: form.rayons, orientir: '', min_area: Number(form.min_area) || 0, rooms: form.rooms || null,
+      rayons: form.rayons, orientir: form.orientir || '', min_area: Number(form.min_area) || 0, rooms: form.rooms || null,
       details: {}, notes: form.notes
     });
     onSuccess();
@@ -673,61 +1394,89 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white w-full max-w-xl p-8 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-          <h2 className="text-xl font-black text-gray-900 tracking-tight">New Client Request</h2>
-          <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"><X className="w-4 h-4"/></button>
+        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">Yangi Mijoz Talabi (New Client)</h2>
+          <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-200 text-slate-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-sm">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs font-semibold text-slate-700">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Name *</label>
-              <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all font-medium" placeholder="Client name" />
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">F.I.SH. (Client Name) *</label>
+              <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 font-bold focus:bg-white transition-all text-xs" placeholder="E.g., Farhod Jalolov" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Phone *</label>
-              <input required type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 transition-all font-medium" placeholder="+998 90 123 45 67" />
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Telefon (Phone) *</label>
+              <input required type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 font-bold focus:bg-white transition-all text-xs" placeholder="+998 90 123 45 67" />
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Category</label>
-              <div className="flex bg-gray-200/50 p-1 rounded-lg">
-                <button type="button" onClick={() => setForm({...form, category: 'zhiloy'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.category === 'zhiloy' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Жилой</button>
-                <button type="button" onClick={() => setForm({...form, category: 'nezhiloy'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.category === 'nezhiloy' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Нежилой</button>
-              </div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
+              <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="zhiloy">Жилой (Turar)</option>
+                <option value="nezhiloy">Нежилой (Tijorat)</option>
+              </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Deal Type</label>
-              <div className="flex bg-gray-200/50 p-1 rounded-lg">
-                <button type="button" onClick={() => setForm({...form, deal_type: 'buy'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.deal_type === 'buy' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Buy</button>
-                <button type="button" onClick={() => setForm({...form, deal_type: 'rent'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.deal_type === 'rent' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Rent</button>
-              </div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="any">Barchasi (Any)</option>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="office">Office</option>
+                <option value="storage">Storage</option>
+                <option value="catering">Catering</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Bitim Turi</label>
+              <select value={form.deal_type} onChange={e => setForm({...form, deal_type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="buy">Xarid qilish (Buy)</option>
+                <option value="rent">Ijaraga olish (Rent)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Min Byudjet ($)</label>
+              <input type="number" value={form.price_min} onChange={e => setForm({...form, price_min: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" placeholder="0" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Max Byudjet ($) *</label>
+              <input required type="number" value={form.price_max} onChange={e => setForm({...form, price_max: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-black text-slate-900" placeholder="100000" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Min Maydon (m²)</label>
+              <input type="number" value={form.min_area} onChange={e => setForm({...form, min_area: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" placeholder="50" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Min Budget ($)</label>
-              <input type="number" value={form.price_min} onChange={e => setForm({...form, price_min: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-mono font-medium" placeholder="0" />
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Xonalar (e.g. "2,3")</label>
+              <input type="text" value={form.rooms} onChange={e => setForm({...form, rooms: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" placeholder="any yoki 2,3" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Max Budget ($) *</label>
-              <input required type="number" value={form.price_max} onChange={e => setForm({...form, price_max: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-mono font-bold" placeholder="150000" />
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Orientir (Mo'ljal)</label>
+              <input type="text" value={form.orientir} onChange={e => setForm({...form, orientir: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" placeholder="E.g., Metro yaqinida" />
             </div>
           </div>
           
           <div>
-             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5">Locations (Rayons)</label>
-             <div className="flex flex-wrap gap-2">
+             <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2.5">Tumanlar (Locations)</label>
+             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-slate-50 border border-slate-100 rounded-lg">
                 {TASHKENT_RAYONS.map(r => (
                   <button 
                     key={r} type="button" 
                     onClick={() => toggleRayon(r)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${form.rayons.includes(r) ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50'}`}
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                      form.rayons.includes(r) ? 'bg-[#0F172A] text-white border-slate-900 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    }`}
                   >
                     {r}
                   </button>
@@ -736,13 +1485,13 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
           </div>
           
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Notes</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 resize-none font-medium text-sm leading-relaxed" rows={3} placeholder="Add specific client requests here..." />
+            <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Izoh / Qo'shimcha eslatmalar (Notes)</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all" rows={3} placeholder="Mijoz talablari haqida batafsil ma'lumotlar..." />
           </div>
           
-          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-bold transition-colors">Cancel</button>
-            <button type="submit" className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 font-bold shadow-md transition-all active:scale-95">Save Client</button>
+          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Client</button>
           </div>
         </form>
       </div>
@@ -753,7 +1502,7 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
 function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
   const [form, setForm] = useState({
     title: '', category: 'zhiloy', type: 'apartment', deal_type: 'sale',
-    price: '', rayon: 'Центр (Markaz)', area: '', rooms: '', contact_name: '', contact_phone: ''
+    price: '', rayon: 'Yakkasaray', area: '', rooms: '', contact_name: '', contact_phone: '', orientir: '', floor: '', max_floor: ''
   });
 
   if (!isOpen) return null;
@@ -764,81 +1513,435 @@ function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, 
     
     await addProperty({
       title: form.title, category: form.category as any, type: form.type, deal_type: form.deal_type as any,
-      price: Number(form.price), rayon: form.rayon, orientir: '', rooms: Number(form.rooms) || null,
-      area: Number(form.area), floor: null, max_floor: null, details: {},
+      price: Number(form.price), rayon: form.rayon, orientir: form.orientir || '', rooms: Number(form.rooms) || null,
+      area: Number(form.area), floor: Number(form.floor) || null, max_floor: Number(form.max_floor) || null, details: {},
       contact_name: form.contact_name, contact_phone: form.contact_phone
     });
     onSuccess();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white w-full max-w-xl p-8 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-          <h2 className="text-xl font-black text-gray-900 tracking-tight">New Property Listing</h2>
-          <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"><X className="w-4 h-4"/></button>
+        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">Yangi Ko'chmas Mulk (New Property)</h2>
+          <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-200 text-slate-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-sm">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs font-semibold text-slate-700">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Title *</label>
-            <input required type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-medium" placeholder="E.g., 3-room apartment in Novostroyka" />
+            <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Sarlavha (Title) *</label>
+            <input required type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 focus:bg-white font-bold transition-all text-xs" placeholder="E.g., Mirobod tumanida 3 xonali evro-uy" />
           </div>
 
-          <div className="grid grid-cols-2 gap-5 bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Category</label>
-              <div className="flex bg-gray-200/50 p-1 rounded-lg">
-                <button type="button" onClick={() => setForm({...form, category: 'zhiloy'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.category === 'zhiloy' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Жилой</button>
-                <button type="button" onClick={() => setForm({...form, category: 'nezhiloy'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.category === 'nezhiloy' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Нежилой</button>
-              </div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
+              <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="zhiloy">Жилой (Turar)</option>
+                <option value="nezhiloy">Нежилой (Tijorat)</option>
+              </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Deal Type</label>
-              <div className="flex bg-gray-200/50 p-1 rounded-lg">
-                <button type="button" onClick={() => setForm({...form, deal_type: 'sale'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.deal_type === 'sale' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Sale</button>
-                <button type="button" onClick={() => setForm({...form, deal_type: 'rent'})} className={`flex-1 py-1.5 text-center rounded-md text-xs font-bold transition-all ${form.deal_type === 'rent' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'}`}>Rent</button>
-              </div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="office">Office</option>
+                <option value="storage">Storage</option>
+                <option value="salon">Salon</option>
+                <option value="catering">Catering / Cafe</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Bitim Turi</label>
+              <select value={form.deal_type} onChange={e => setForm({...form, deal_type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="sale">Sotuv (Sale)</option>
+                <option value="rent">Ijara (Rent)</option>
+              </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Price ($) *</label>
-              <input required type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-mono font-bold" placeholder="0" />
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Narx ($) *</label>
+              <input required type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-black text-slate-950" placeholder="65000" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Rayon</label>
-               <select value={form.rayon} onChange={e => setForm({...form, rayon: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 bg-white font-medium cursor-pointer">
-                  {TASHKENT_RAYONS.filter(r => !r.includes('Любой')).map(r => <option key={r} value={r}>{r}</option>)}
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Tuman (Rayon)</label>
+               <select value={form.rayon} onChange={e => setForm({...form, rayon: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white cursor-pointer font-bold text-xs">
+                  {TASHKENT_RAYONS.filter(r => !r.includes('Любой') && !r.includes('Центar')).map(r => <option key={r} value={r}>{r}</option>)}
                </select>
             </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Mo'ljal (Orientir)</label>
+              <input type="text" value={form.orientir} onChange={e => setForm({...form, orientir: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" placeholder="E.g., Korzinka yaqinida" />
+            </div>
           </div>
           
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Maydon (m²) *</label>
+              <input required type="number" value={form.area} onChange={e => setForm({...form, area: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" placeholder="75" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Xonalar</label>
+              <input type="number" value={form.rooms} onChange={e => setForm({...form, rooms: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" placeholder="3" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Qavat (Floor)</label>
+              <input type="number" value={form.floor} onChange={e => setForm({...form, floor: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all" placeholder="3" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Qavatlar soni</label>
+              <input type="number" value={form.max_floor} onChange={e => setForm({...form, max_floor: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all" placeholder="9" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Mulk Egasi Ismi (Owner Name)</label>
+              <input type="text" value={form.contact_name} onChange={e => setForm({...form, contact_name: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white font-bold text-xs" placeholder="Dilshod aka" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Telefon (Phone) *</label>
+              <input required type="text" value={form.contact_phone} onChange={e => setForm({...form, contact_phone: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white font-bold text-xs" placeholder="+998 90 999 99 99" />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Property</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------------------------------------
+// PREMIUM EDITING MODALS
+// ------------------------------------------------------------------------------------------------
+
+interface EditClientModalProps {
+  client: Client;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModalProps) {
+  const [form, setForm] = useState({
+    name: client.name,
+    phone: client.phone,
+    category: client.category,
+    type: client.type || 'any',
+    deal_type: client.deal_type,
+    price_min: String(client.price_min),
+    price_max: String(client.price_max),
+    rayons: client.rayons || [],
+    orientir: client.orientir || '',
+    min_area: String(client.min_area || '0'),
+    rooms: client.rooms || 'any',
+    notes: client.notes || '',
+    status: client.status || 'active'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.phone || !form.price_max) return alert('Name, Phone and Max Budget are required.');
+
+    await updateClient(client.id!, {
+      name: form.name,
+      phone: form.phone,
+      category: form.category as any,
+      type: form.type === 'any' ? null : form.type,
+      deal_type: form.deal_type as any,
+      price_min: Number(form.price_min) || 0,
+      price_max: Number(form.price_max),
+      rayons: form.rayons,
+      orientir: form.orientir,
+      min_area: Number(form.min_area) || 0,
+      rooms: form.rooms === 'any' ? null : form.rooms,
+      details: client.details || {},
+      notes: form.notes,
+      status: form.status
+    });
+    onSuccess();
+  };
+
+  const toggleRayon = (r: string) => {
+    setForm(prev => {
+      if (r === 'Любой (Istalgan)') return { ...prev, rayons: [r] };
+      const newRayons = prev.rayons.includes(r) ? prev.rayons.filter(x => x !== r) : [...prev.rayons.filter(x => x !== 'Любой (Istalgan)'), r];
+      return { ...prev, rayons: newRayons };
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white w-full max-w-xl p-8 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">Mijoz Tahrirlash (Edit Client)</h2>
+          <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-200 text-slate-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs font-semibold text-slate-700">
           <div className="grid grid-cols-2 gap-4">
-             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Area (m²) *</label>
-              <input required type="number" value={form.area} onChange={e => setForm({...form, area: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-mono font-medium" placeholder="75" />
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">F.I.SH. (Client Name) *</label>
+              <input required type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 focus:bg-white font-bold transition-all text-xs" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Rooms</label>
-              <input type="number" value={form.rooms} onChange={e => setForm({...form, rooms: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-mono font-medium" placeholder="3" />
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Telefon (Phone) *</label>
+              <input required type="text" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 focus:bg-white transition-all text-xs" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+
+          <div className="grid grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Owner Name</label>
-              <input type="text" value={form.contact_name} onChange={e => setForm({...form, contact_name: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-medium" placeholder="Alisher" />
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
+              <select value={form.category} onChange={e => setForm({...form, category: e.target.value as any})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="zhiloy">Жилой (Turar)</option>
+                <option value="nezhiloy">Нежилой (Tijorat)</option>
+              </select>
             </div>
-             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Phone *</label>
-              <input required type="text" value={form.contact_phone} onChange={e => setForm({...form, contact_phone: e.target.value})} className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:border-black focus:ring-2 focus:ring-black/5 font-medium" placeholder="+998 90 000 00 00" />
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="any">Barchasi (Any)</option>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="office">Office</option>
+                <option value="storage">Storage</option>
+                <option value="salon">Salon</option>
+                <option value="catering">Catering</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Bitim Turi</label>
+              <select value={form.deal_type} onChange={e => setForm({...form, deal_type: e.target.value as any})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="buy">Xarid qilish (Buy)</option>
+                <option value="rent">Ijaraga olish (Rent)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Status</label>
+              <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="active">Active</option>
+                <option value="negotiating">Negotiating</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
+              </select>
             </div>
           </div>
-          
-          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-bold transition-colors">Cancel</button>
-            <button type="submit" className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 font-bold shadow-md transition-all active:scale-95">Save Property</button>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Min Byudjet ($)</label>
+              <input type="number" value={form.price_min} onChange={e => setForm({...form, price_min: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Max Byudjet ($) *</label>
+              <input required type="number" value={form.price_max} onChange={e => setForm({...form, price_max: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-black text-slate-950" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Min Maydon (m²)</label>
+              <input type="number" value={form.min_area} onChange={e => setForm({...form, min_area: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Xonalar</label>
+              <input type="text" value={form.rooms} onChange={e => setForm({...form, rooms: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Orientir</label>
+              <input type="text" value={form.orientir} onChange={e => setForm({...form, orientir: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" />
+            </div>
+          </div>
+
+          <div>
+             <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2.5">Tumanlar (Rayons)</label>
+             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                {TASHKENT_RAYONS.map(r => (
+                  <button 
+                    key={r} type="button" 
+                    onClick={() => toggleRayon(r)}
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                      form.rayons.includes(r) ? 'bg-[#0F172A] text-white border-slate-900 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+             </div>
+          </div>
+
+          <div>
+            <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Izoh / Qo'shimcha eslatmalar (Notes)</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all" rows={3} />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface EditPropertyModalProps {
+  property: Property;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditPropertyModal({ property, isOpen, onClose, onSuccess }: EditPropertyModalProps) {
+  const [form, setForm] = useState({
+    title: property.title,
+    category: property.category,
+    type: property.type,
+    deal_type: property.deal_type,
+    price: String(property.price),
+    rayon: property.rayon,
+    orientir: property.orientir || '',
+    area: String(property.area),
+    rooms: String(property.rooms || ''),
+    floor: String(property.floor || ''),
+    max_floor: String(property.max_floor || ''),
+    contact_name: property.contact_name || '',
+    contact_phone: property.contact_phone,
+    status: property.status || 'active'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title || !form.price || !form.area || !form.contact_phone) return alert('Fill required fields');
+
+    await updateProperty(property.id!, {
+      title: form.title,
+      category: form.category as any,
+      type: form.type,
+      deal_type: form.deal_type as any,
+      price: Number(form.price),
+      rayon: form.rayon,
+      orientir: form.orientir,
+      rooms: Number(form.rooms) || null,
+      area: Number(form.area),
+      floor: Number(form.floor) || null,
+      max_floor: Number(form.max_floor) || null,
+      details: property.details || {},
+      contact_name: form.contact_name,
+      contact_phone: form.contact_phone,
+      status: form.status
+    });
+    onSuccess();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white w-full max-w-xl p-8 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">Ob'ekt Tahrirlash (Edit Property)</h2>
+          <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-200 text-slate-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs font-semibold text-slate-700">
+          <div>
+            <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Sarlavha (Title) *</label>
+            <input required type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-slate-50 focus:bg-white font-bold transition-all text-xs" />
+          </div>
+
+          <div className="grid grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
+              <select value={form.category} onChange={e => setForm({...form, category: e.target.value as any})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="zhiloy">Жилой (Turar)</option>
+                <option value="nezhiloy">Нежилой (Tijorat)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="office">Office</option>
+                <option value="storage">Storage</option>
+                <option value="salon">Salon</option>
+                <option value="catering">Catering</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Bitim Turi</label>
+              <select value={form.deal_type} onChange={e => setForm({...form, deal_type: e.target.value as any})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="sale">Sotuv (Sale)</option>
+                <option value="rent">Ijara (Rent)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Status</label>
+              <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Narx ($) *</label>
+              <input required type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-black text-slate-950" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Tuman (Rayon)</label>
+               <select value={form.rayon} onChange={e => setForm({...form, rayon: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white cursor-pointer font-bold text-xs">
+                  {TASHKENT_RAYONS.filter(r => !r.includes('Любой') && !r.includes('Центar')).map(r => <option key={r} value={r}>{r}</option>)}
+               </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Mo'ljal (Orientir)</label>
+              <input type="text" value={form.orientir} onChange={e => setForm({...form, orientir: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 focus:bg-white transition-all text-xs" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Maydon (m²) *</label>
+              <input required type="number" value={form.area} onChange={e => setForm({...form, area: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" placeholder="75" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Xonalar</label>
+              <input type="number" value={form.rooms} onChange={e => setForm({...form, rooms: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all font-bold" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Qavat (Floor)</label>
+              <input type="number" value={form.floor} onChange={e => setForm({...form, floor: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Qavatlar soni</label>
+              <input type="number" value={form.max_floor} onChange={e => setForm({...form, max_floor: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 font-mono text-xs focus:bg-white transition-all" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Mulk Egasi Ismi</label>
+              <input type="text" value={form.contact_name} onChange={e => setForm({...form, contact_name: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white font-bold text-xs" />
+            </div>
+            <div>
+              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Telefon (Phone) *</label>
+              <input required type="text" value={form.contact_phone} onChange={e => setForm({...form, contact_phone: e.target.value})} className="w-full border border-slate-200 p-2.5 rounded-lg outline-none focus:border-slate-900 bg-white font-bold text-xs" />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Changes</button>
           </div>
         </form>
       </div>
