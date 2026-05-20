@@ -1,6 +1,7 @@
 'use server'
 
 import { sql, initDb } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
 export interface Property {
   id?: number;
@@ -100,6 +101,7 @@ export async function addProperty(property: Omit<Property, 'id' | 'created_at'>)
       ) RETURNING id
     `;
     
+    revalidatePath('/');
     return { success: true, id: result[0]?.id };
   } catch (error) {
     console.error('Failed to add property:', error);
@@ -115,6 +117,7 @@ export async function updatePropertyStatus(id: number, status: string) {
       SET status = ${status} 
       WHERE id = ${id}
     `;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update property status:', error);
@@ -126,6 +129,7 @@ export async function deleteProperty(id: number) {
   await ensureDb();
   try {
     await sql`DELETE FROM properties WHERE id = ${id}`;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete property:', error);
@@ -157,6 +161,7 @@ export async function updateProperty(id: number, property: Omit<Property, 'id' |
         status = ${property.status || 'active'}
       WHERE id = ${id}
     `;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update property:', error);
@@ -219,6 +224,7 @@ export async function addClient(client: Omit<Client, 'id' | 'created_at'>) {
       ) RETURNING id
     `;
     
+    revalidatePath('/');
     return { success: true, id: result[0]?.id };
   } catch (error) {
     console.error('Failed to add client:', error);
@@ -234,6 +240,7 @@ export async function updateClientStatus(id: number, status: string) {
       SET status = ${status} 
       WHERE id = ${id}
     `;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update client status:', error);
@@ -249,6 +256,7 @@ export async function updateClientNotes(id: number, notes: string) {
       SET notes = ${notes} 
       WHERE id = ${id}
     `;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update client notes:', error);
@@ -260,6 +268,7 @@ export async function deleteClient(id: number) {
   await ensureDb();
   try {
     await sql`DELETE FROM clients WHERE id = ${id}`;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete client:', error);
@@ -291,6 +300,7 @@ export async function updateClient(id: number, client: Omit<Client, 'id' | 'crea
         status = ${client.status || 'active'}
       WHERE id = ${id}
     `;
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update client:', error);

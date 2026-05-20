@@ -6,7 +6,7 @@ import {
   Phone, X, Check, RefreshCw, Filter, ArrowRight,
   BarChart3, Megaphone, Copy, Edit3, Database, 
   ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info,
-  Menu
+  Menu, Send, Download, Printer
 } from 'lucide-react';
 import { 
   Property, Client, addProperty, addClient, getProperties, 
@@ -442,6 +442,41 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
     }, 1500);
   };
 
+  // Export to CSV utility
+  const exportToCSV = () => {
+    const isClient = activeTab === 'clients';
+    const data = isClient ? clients : properties;
+    if (!data.length) return alert('No data to export!');
+
+    const headers = isClient 
+      ? ['ID', 'Name', 'Phone', 'Category', 'Deal Type', 'Min Price', 'Max Price', 'Status', 'Notes']
+      : ['ID', 'Title', 'Category', 'Deal Type', 'Price', 'Area', 'Rooms', 'Rayon', 'Phone'];
+
+    const rows = data.map((item: any) => {
+      if (isClient) {
+        return [
+          item.id, `"${item.name}"`, item.phone, item.category, item.deal_type, 
+          item.price_min || '', item.price_max, item.status || 'active', `"${(item.notes || '').replace(/"/g, '""')}"`
+        ];
+      } else {
+        return [
+          item.id, `"${item.title.replace(/"/g, '""')}"`, item.category, item.deal_type, 
+          item.price, item.area, item.rooms || '', item.rayon, item.contact_phone
+        ];
+      }
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `55Kvartal_${isClient ? 'Clients' : 'Properties'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Metric aggregates for dashboard
   const activePropertiesCount = properties.filter(p => p.status === 'active').length;
   const archivedPropertiesCount = properties.filter(p => p.status === 'archived').length;
@@ -463,7 +498,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const catNezhiloyCount = properties.filter(p => p.category === 'nezhiloy' && p.status === 'active').length;
 
   return (
-    <div className="flex h-screen bg-[#F9F8F6] text-[#1C2421] font-sans overflow-hidden selection:bg-[#1C2421] selection:text-white">
+    <div className="flex h-screen bg-[#F9F8F6] text-[#1C2421] font-sans overflow-hidden selection:bg-[#1C2421] selection:text-white print:h-auto print:overflow-visible">
       
       {/* SIDEBAR BACKDROP - FOR MOBILE VIEWPORT DRAWER CLOSING */}
       {isSidebarOpen && (
@@ -490,7 +525,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
       )}
 
       {/* SIDEBAR - WARM ALABASTER & FOREST INK STYLE */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-68 border-r border-[#4D6256]/15 bg-[#1C2421] text-slate-300 flex flex-col shrink-0 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-68 border-r border-[#4D6256]/15 bg-[#1C2421] text-slate-300 flex flex-col shrink-0 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out print:hidden`}>
         <div className="h-16 flex items-center px-6 border-b border-[#2A3530] gap-2 font-black text-xl tracking-tight text-white">
           <span className="flex items-center justify-center bg-[#4D6256] text-white w-8 h-8 rounded-lg shadow-md font-extrabold font-mono">55</span>
           <span>55kvartal</span>
@@ -580,7 +615,10 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-[#1C2421] hover:bg-[#4D6256]/10 rounded-xl transition-all" title={t.refresh}>
+            <button onClick={exportToCSV} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#4D6256]/20 text-[#4D6256] hover:bg-[#4D6256]/10 rounded-xl transition-all text-xs font-bold cursor-pointer print:hidden" title="Export CSV Data">
+              <Download className="w-3.5 h-3.5" /> CSV
+            </button>
+            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-[#1C2421] hover:bg-[#4D6256]/10 rounded-xl transition-all print:hidden" title={t.refresh}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button 
@@ -595,7 +633,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
         {/* FILTERS BAR (Show only in List tabs) */}
         {(activeTab === 'clients' || activeTab === 'properties' || activeTab === 'marketing') && (
-          <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3 shrink-0 scrollbar-none overflow-x-auto shadow-sm w-full">
+          <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3 shrink-0 scrollbar-none overflow-x-auto shadow-sm w-full print:hidden">
             <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mr-2">
               <Filter className="w-3.5 h-3.5" /> {t.filters}
             </span>
@@ -974,13 +1012,24 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                             {t.postTextUz} 
-                            <button 
-                              onClick={() => copyToClipboard(marketingCopyUz, marketingProperty.id!, 'uz')}
-                              className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline ml-auto flex items-center gap-0.5"
-                            >
-                              {copiedId === marketingProperty.id && copiedLang === 'uz' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                              {t.copyText}
-                            </button>
+                            <div className="ml-auto flex items-center gap-2">
+                              <button 
+                                onClick={() => copyToClipboard(marketingCopyUz, marketingProperty.id!, 'uz')}
+                                className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                {copiedId === marketingProperty.id && copiedLang === 'uz' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                {t.copyText}
+                              </button>
+                              <a 
+                                href={`https://t.me/share/url?url=&text=${encodeURIComponent(marketingCopyUz)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] text-[#4D6256] font-extrabold uppercase hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <Send className="w-3 h-3" />
+                                Share
+                              </a>
+                            </div>
                           </label>
                           <textarea 
                             value={marketingCopyUz}
@@ -992,13 +1041,24 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                             {t.postTextRu}
-                            <button 
-                              onClick={() => copyToClipboard(marketingCopyRu, marketingProperty.id!, 'ru')}
-                              className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline ml-auto flex items-center gap-0.5"
-                            >
-                              {copiedId === marketingProperty.id && copiedLang === 'ru' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                              {t.copyText}
-                            </button>
+                            <div className="ml-auto flex items-center gap-2">
+                              <button 
+                                onClick={() => copyToClipboard(marketingCopyRu, marketingProperty.id!, 'ru')}
+                                className="text-[9px] text-sky-600 font-extrabold uppercase hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                {copiedId === marketingProperty.id && copiedLang === 'ru' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                {t.copyText}
+                              </button>
+                              <a 
+                                href={`https://t.me/share/url?url=&text=${encodeURIComponent(marketingCopyRu)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] text-[#4D6256] font-extrabold uppercase hover:underline flex items-center gap-0.5 cursor-pointer"
+                              >
+                                <Send className="w-3 h-3" />
+                                Share
+                              </a>
+                            </div>
                           </label>
                           <textarea 
                             value={marketingCopyRu}
@@ -1226,18 +1286,25 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
       {/* 6. RIGHT DRAWER: PROPERTY DETAILS */}
       {selectedProperty && (
-        <aside className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] border-l border-[#4D6256]/15 bg-white flex flex-col shrink-0 shadow-2xl animate-fade-in-right md:relative md:z-20">
+        <aside className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] border-l border-[#4D6256]/15 bg-white flex flex-col shrink-0 shadow-2xl animate-fade-in-right md:relative md:z-20 print:block print:absolute print:inset-0 print:w-full print:bg-white print:z-[9999] print:shadow-none print:border-none">
           <div className="h-16 border-b border-[#4D6256]/15 flex items-center justify-between px-6 shrink-0 bg-[#F9F8F6]">
             <h2 className="font-black text-xs uppercase tracking-wider text-[#4D6256]">{t.properties} Details</h2>
             <div className="flex items-center gap-2">
               <button 
+                onClick={() => window.print()} 
+                className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer print:hidden"
+                title="Print Detail Sheet"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
+              <button 
                 onClick={() => setEditingProperty(selectedProperty)} 
-                className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer"
+                className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer print:hidden"
                 title={t.edit}
               >
                 <Edit3 className="w-4 h-4" />
               </button>
-              <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer">
+              <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer print:hidden">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1410,9 +1477,10 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
 function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
   const [form, setForm] = useState({
-    name: '', phone: '', category: 'zhiloy', type: 'apartment', deal_type: 'buy',
+    name: '', phone: '', category: 'zhiloy', type: 'any', deal_type: 'buy',
     price_min: '', price_max: '', rayons: [] as string[], min_area: '', rooms: '', notes: '', orientir: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -1420,13 +1488,19 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
     e.preventDefault();
     if (!form.name || !form.phone || !form.price_max) return alert('Name, Phone, and Max Budget are required.');
     
-    await addClient({
-      name: form.name, phone: form.phone, category: form.category as any, type: form.type === 'any' ? null : form.type,
-      deal_type: form.deal_type as any, price_min: Number(form.price_min) || 0, price_max: Number(form.price_max),
-      rayons: form.rayons, orientir: form.orientir || '', min_area: Number(form.min_area) || 0, rooms: form.rooms || null,
-      details: {}, notes: form.notes
-    });
-    onSuccess();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await addClient({
+        name: form.name, phone: form.phone, category: form.category as any, type: form.type === 'any' ? null : form.type,
+        deal_type: form.deal_type as any, price_min: Number(form.price_min) || 0, price_max: Number(form.price_max),
+        rayons: form.rayons, orientir: form.orientir || '', min_area: Number(form.min_area) || 0, rooms: form.rooms || null,
+        details: {}, notes: form.notes
+      });
+      onSuccess();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleRayon = (r: string) => {
@@ -1457,23 +1531,12 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
               <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
               <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
                 <option value="zhiloy">Жилой (Turar)</option>
                 <option value="nezhiloy">Нежилой (Tijorat)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
-              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
-                <option value="any">Barchasi (Any)</option>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="office">Office</option>
-                <option value="storage">Storage</option>
-                <option value="catering">Catering</option>
               </select>
             </div>
             <div>
@@ -1534,8 +1597,8 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
           </div>
           
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Client</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'Saving...' : 'Save Client'}</button>
           </div>
         </form>
       </div>
@@ -1548,6 +1611,7 @@ function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, 
     title: '', category: 'zhiloy', type: 'apartment', deal_type: 'sale',
     price: '', rayon: 'Yakkasaray', area: '', rooms: '', contact_name: '', contact_phone: '', orientir: '', floor: '', max_floor: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -1555,13 +1619,19 @@ function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, 
     e.preventDefault();
     if (!form.title || !form.price || !form.area || !form.contact_phone) return alert('Fill required fields');
     
-    await addProperty({
-      title: form.title, category: form.category as any, type: form.type, deal_type: form.deal_type as any,
-      price: Number(form.price), rayon: form.rayon, orientir: form.orientir || '', rooms: Number(form.rooms) || null,
-      area: Number(form.area), floor: Number(form.floor) || null, max_floor: Number(form.max_floor) || null, details: {},
-      contact_name: form.contact_name, contact_phone: form.contact_phone
-    });
-    onSuccess();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await addProperty({
+        title: form.title, category: form.category as any, type: form.type, deal_type: form.deal_type as any,
+        price: Number(form.price), rayon: form.rayon, orientir: form.orientir || '', rooms: Number(form.rooms) || null,
+        area: Number(form.area), floor: Number(form.floor) || null, max_floor: Number(form.max_floor) || null, details: {},
+        contact_name: form.contact_name, contact_phone: form.contact_phone
+      });
+      onSuccess();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1654,8 +1724,8 @@ function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, 
           </div>
           
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Property</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'Saving...' : 'Save Property'}</button>
           </div>
         </form>
       </div>
@@ -1690,28 +1760,35 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
     notes: client.notes || '',
     status: client.status || 'active'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone || !form.price_max) return alert('Name, Phone and Max Budget are required.');
 
-    await updateClient(client.id!, {
-      name: form.name,
-      phone: form.phone,
-      category: form.category as any,
-      type: form.type === 'any' ? null : form.type,
-      deal_type: form.deal_type as any,
-      price_min: Number(form.price_min) || 0,
-      price_max: Number(form.price_max),
-      rayons: form.rayons,
-      orientir: form.orientir,
-      min_area: Number(form.min_area) || 0,
-      rooms: form.rooms === 'any' ? null : form.rooms,
-      details: client.details || {},
-      notes: form.notes,
-      status: form.status
-    });
-    onSuccess();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await updateClient(client.id!, {
+        name: form.name,
+        phone: form.phone,
+        category: form.category as any,
+        type: form.type === 'any' ? null : form.type,
+        deal_type: form.deal_type as any,
+        price_min: Number(form.price_min) || 0,
+        price_max: Number(form.price_max),
+        rayons: form.rayons,
+        orientir: form.orientir,
+        min_area: Number(form.min_area) || 0,
+        rooms: form.rooms === 'any' ? null : form.rooms,
+        details: client.details || {},
+        notes: form.notes,
+        status: form.status
+      });
+      onSuccess();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleRayon = (r: string) => {
@@ -1742,24 +1819,12 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div>
               <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Kategoriya</label>
               <select value={form.category} onChange={e => setForm({...form, category: e.target.value as any})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
                 <option value="zhiloy">Жилой (Turar)</option>
                 <option value="nezhiloy">Нежилой (Tijorat)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Turi (Type)</label>
-              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
-                <option value="any">Barchasi (Any)</option>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="office">Office</option>
-                <option value="storage">Storage</option>
-                <option value="salon">Salon</option>
-                <option value="catering">Catering</option>
               </select>
             </div>
             <div>
@@ -1829,8 +1894,8 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Changes</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </form>
       </div>
@@ -1862,29 +1927,36 @@ function EditPropertyModal({ property, isOpen, onClose, onSuccess }: EditPropert
     contact_phone: property.contact_phone,
     status: property.status || 'active'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.price || !form.area || !form.contact_phone) return alert('Fill required fields');
 
-    await updateProperty(property.id!, {
-      title: form.title,
-      category: form.category as any,
-      type: form.type,
-      deal_type: form.deal_type as any,
-      price: Number(form.price),
-      rayon: form.rayon,
-      orientir: form.orientir,
-      rooms: Number(form.rooms) || null,
-      area: Number(form.area),
-      floor: Number(form.floor) || null,
-      max_floor: Number(form.max_floor) || null,
-      details: property.details || {},
-      contact_name: form.contact_name,
-      contact_phone: form.contact_phone,
-      status: form.status
-    });
-    onSuccess();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await updateProperty(property.id!, {
+        title: form.title,
+        category: form.category as any,
+        type: form.type,
+        deal_type: form.deal_type as any,
+        price: Number(form.price),
+        rayon: form.rayon,
+        orientir: form.orientir,
+        rooms: Number(form.rooms) || null,
+        area: Number(form.area),
+        floor: Number(form.floor) || null,
+        max_floor: Number(form.max_floor) || null,
+        details: property.details || {},
+        contact_name: form.contact_name,
+        contact_phone: form.contact_phone,
+        status: form.status
+      });
+      onSuccess();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1984,8 +2056,8 @@ function EditPropertyModal({ property, isOpen, onClose, onSuccess }: EditPropert
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Changes</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">{isSubmitting ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </form>
       </div>
