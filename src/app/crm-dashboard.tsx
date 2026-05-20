@@ -14,6 +14,7 @@ import {
   deleteProperty, deleteClient, getMatchesForClient, 
   getMatchesForProperty, MatchResult, seedDatabase, updateProperty, updateClient
 } from './actions';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface CrmDashboardProps {
   initialProperties: Property[];
@@ -145,6 +146,26 @@ const TRANSLATIONS = {
 };
 
 export default function CrmDashboard({ initialProperties, initialClients }: CrmDashboardProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+    const { source, destination, draggableId } = result;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    const clientId = parseInt(draggableId);
+    const newStatus = destination.droppableId;
+    
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: newStatus } : c));
+    
+    try {
+      await updateClientStatus(clientId, newStatus);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const [lang, setLang] = useState<'uz' | 'ru'>('uz');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const t = TRANSLATIONS[lang];
@@ -327,6 +348,8 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   });
 
   const pipelineNew = sortedClients.filter(c => c.status === 'active' || !c.status);
+  const pipelinePadbor = sortedClients.filter(c => c.status === 'padbor');
+  const pipelinePokaz = sortedClients.filter(c => c.status === 'pokaz');
   const pipelineNegotiating = sortedClients.filter(c => c.status === 'negotiating');
   const pipelineClosed = sortedClients.filter(c => c.status === 'completed');
   const pipelineArchived = sortedClients.filter(c => c.status === 'archived');
@@ -480,11 +503,11 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   // Metric aggregates for dashboard
   const activePropertiesCount = properties.filter(p => p.status === 'active').length;
   const archivedPropertiesCount = properties.filter(p => p.status === 'archived').length;
-  const activeClientsCount = clients.filter(c => c.status === 'active' || c.status === 'negotiating' || !c.status).length;
+  const activeClientsCount = clients.filter(c => ['active', 'padbor', 'pokaz', 'negotiating'].includes(c.status || 'active')).length;
   const closedClientsCount = clients.filter(c => c.status === 'completed').length;
 
   const totalClientsBudget = clients
-    .filter(c => c.status === 'active' || c.status === 'negotiating' || !c.status)
+    .filter(c => ['active', 'padbor', 'pokaz', 'negotiating'].includes(c.status || 'active'))
     .reduce((sum, c) => sum + Number(c.price_max), 0);
 
   const activePropertiesVolume = properties
@@ -806,54 +829,74 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
           )}
 
           {/* 2. CLIENTS PIPELINE (KANBAN BOARD) */}
-          {activeTab === 'clients' && (
-            <div className="h-full flex overflow-x-auto p-6 gap-6 scrollbar-thin">
-              {[
-                { title: t.statusNew, items: pipelineNew, borderStyle: 'border-t-[#4D6256]' },
-                { title: t.statusNegotiating, items: pipelineNegotiating, borderStyle: 'border-t-[#A5C0B0]' },
-                { title: t.statusClosed, items: pipelineClosed, borderStyle: 'border-t-[#1C2421]' },
-                { title: t.statusArchived, items: pipelineArchived, borderStyle: 'border-t-slate-400' },
-              ].map(column => (
-                <div key={column.title} className="flex-1 min-w-[280px] max-w-[350px] flex flex-col">
-                  <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-xs font-extrabold text-[#1C2421] uppercase tracking-widest">{column.title}</h3>
-                    <span className="text-[10px] font-extrabold bg-[#4D6256]/10 text-[#4D6256] px-2 py-0.5 rounded-full">{column.items.length}</span>
-                  </div>
-                  <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none">
-                    {column.items.map(client => (
+          {activeTab === 'clients' && isMounted && (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div className="h-full flex overflow-x-auto p-6 gap-6 scrollbar-thin">
+                {[
+                  { id: 'active', title: t.statusNew || 'Yangi', items: pipelineNew, borderStyle: 'border-t-[#4D6256]' },
+                  { id: 'padbor', title: 'Padbor', items: pipelinePadbor, borderStyle: 'border-t-blue-400' },
+                  { id: 'pokaz', title: 'Pokaz', items: pipelinePokaz, borderStyle: 'border-t-purple-400' },
+                  { id: 'negotiating', title: t.statusNegotiating || 'Muzokara', items: pipelineNegotiating, borderStyle: 'border-t-[#A5C0B0]' },
+                  { id: 'completed', title: t.statusClosed || 'Yopildi', items: pipelineClosed, borderStyle: 'border-t-[#1C2421]' },
+                  { id: 'archived', title: t.statusArchived || 'Arxiv', items: pipelineArchived, borderStyle: 'border-t-slate-400' },
+                ].map(column => (
+                  <Droppable droppableId={column.id} key={column.id}>
+                    {(provided, snapshot) => (
                       <div 
-                        key={client.id}
-                        onClick={() => setSelectedClient(client)}
-                        className={`bg-white border-t-2 ${column.borderStyle} border-x border-b p-4.5 rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                          selectedClient?.id === client.id ? 'ring-2 ring-[#4D6256] border-[#4D6256]' : 'border-[#4D6256]/10 hover:border-[#4D6256]/30'
-                        }`}
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 min-w-[280px] max-w-[350px] flex flex-col ${snapshot.isDraggingOver ? 'bg-slate-50 ring-2 ring-[#4D6256]/20' : ''} rounded-xl transition-colors duration-200`}
                       >
-                        <div className="flex justify-between items-start mb-2.5">
-                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#1C2421]">
-                             {client.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
-                           </span>
-                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 text-[#4D6256] border border-[#4D6256]/20">
-                             {client.deal_type === 'rent' ? 'Rent' : 'Buy'}
-                           </span>
+                        <div className="flex items-center justify-between mb-4 px-1">
+                          <h3 className="text-xs font-extrabold text-[#1C2421] uppercase tracking-widest">{column.title}</h3>
+                          <span className="text-[10px] font-extrabold bg-[#4D6256]/10 text-[#4D6256] px-2 py-0.5 rounded-full">{column.items.length}</span>
                         </div>
-                        <div className="font-black text-lg mb-1 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
-                        <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-semibold">
-                          <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone}
+                        <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none min-h-[200px]">
+                          {column.items.map((client, index) => (
+                            <Draggable key={client.id} draggableId={client.id!.toString()} index={index}>
+                              {(provided, snapshot) => (
+                                <div 
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  onClick={() => setSelectedClient(client)}
+                                  className={`bg-white border-t-2 ${column.borderStyle} border-x border-b p-4.5 rounded-xl shadow-sm cursor-grab active:cursor-grabbing transition-all ${
+                                    snapshot.isDragging ? 'rotate-2 scale-105 shadow-xl ring-2 ring-[#4D6256]' : 'hover:-translate-y-0.5 hover:shadow-md border-[#4D6256]/10 hover:border-[#4D6256]/30'
+                                  }`}
+                                  style={{...provided.draggableProps.style}}
+                                >
+                                  <div className="flex justify-between items-start mb-2.5">
+                                     <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#1C2421]">
+                                       {client.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
+                                     </span>
+                                     <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 text-[#4D6256] border border-[#4D6256]/20">
+                                       {client.deal_type === 'rent' ? 'Rent' : 'Buy'}
+                                     </span>
+                                  </div>
+                                  <div className="font-black text-lg mb-1 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
+                                  <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-semibold">
+                                    <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone}
+                                  </div>
+                                  <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
+                                    {client.price_min ? `${formatPrice(client.price_min)} - ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/mo' : ''}
+                                  </div>
+                                  {client.notes && (
+                                    <div className="mt-3 text-xs text-slate-600 line-clamp-2 border-t border-slate-100 pt-2.5 leading-relaxed font-medium">
+                                      {client.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
                         </div>
-                        <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
-                          {client.price_min ? `${formatPrice(client.price_min)} - ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/mo' : ''}
-                        </div>
-                        {client.notes && (
-                          <div className="mt-3 text-xs text-slate-600 line-clamp-2 border-t border-slate-100 pt-2.5 leading-relaxed font-medium">
-                            {client.notes}
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+                    )}
+                  </Droppable>
+                ))}
+              </div>
+            </DragDropContext>
           )}
 
           {/* 3. PROPERTIES GRID LIST */}
@@ -1166,6 +1209,8 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                   className="text-xs font-bold bg-white border border-[#4D6256]/20 rounded-xl px-3 py-2.5 outline-none focus:border-[#4D6256] shadow-xs cursor-pointer w-full text-[#1C2421]"
                 >
                   <option value="active">{t.statusNew} (Active)</option>
+                  <option value="padbor">Padbor</option>
+                  <option value="pokaz">Pokaz</option>
                   <option value="negotiating">{t.statusNegotiating} (In Progress)</option>
                   <option value="completed">{t.statusClosed} (Won)</option>
                   <option value="archived">{t.statusArchived} (Lost)</option>
@@ -1838,6 +1883,8 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
               <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Status</label>
               <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full border border-slate-200 rounded-lg p-1.5 bg-white text-xs font-bold">
                 <option value="active">Active</option>
+                <option value="padbor">Padbor</option>
+                <option value="pokaz">Pokaz</option>
                 <option value="negotiating">Negotiating</option>
                 <option value="completed">Completed</option>
                 <option value="archived">Archived</option>

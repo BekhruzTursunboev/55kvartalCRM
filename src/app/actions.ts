@@ -38,7 +38,7 @@ export interface Client {
   rooms: string | null; // e.g. "1,2", "3", "any"
   details: Record<string, any>;
   notes: string;
-  status?: string; // 'active', 'archived', 'completed'
+  status?: string; // 'active', 'padbor', 'pokaz', 'negotiating', 'completed', 'archived'
   created_at?: string;
 }
 
