@@ -14,7 +14,7 @@ export default async function Home() {
   const initialClients = await getClients();
 
   return (
-    <main className="flex-1 bg-[#070b14] min-h-screen text-slate-100 flex flex-col font-sans">
+    <main className="flex-1 bg-[#F9F8F6] min-h-screen text-[#1C2421] flex flex-col font-sans">
       <CrmDashboard 
         initialProperties={initialProperties} 
         initialClients={initialClients} 

@@ -5,7 +5,8 @@ import {
   Users, Building2, Search, Plus, MapPin, 
   Phone, X, Check, RefreshCw, Filter, ArrowRight,
   BarChart3, Megaphone, Copy, Edit3, Database, 
-  ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info
+  ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info,
+  Menu
 } from 'lucide-react';
 import { 
   Property, Client, addProperty, addClient, getProperties, 
@@ -145,6 +146,7 @@ const TRANSLATIONS = {
 
 export default function CrmDashboard({ initialProperties, initialClients }: CrmDashboardProps) {
   const [lang, setLang] = useState<'uz' | 'ru'>('uz');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const t = TRANSLATIONS[lang];
 
   const [properties, setProperties] = useState<Property[]>(initialProperties);
@@ -461,58 +463,91 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const catNezhiloyCount = properties.filter(p => p.category === 'nezhiloy' && p.status === 'active').length;
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden selection:bg-slate-900 selection:text-white">
+    <div className="flex h-screen bg-[#F9F8F6] text-[#1C2421] font-sans overflow-hidden selection:bg-[#1C2421] selection:text-white">
       
-      {/* SIDEBAR - LUXURIOUS SLATE NAVY STYLE */}
-      <aside className="w-68 border-r border-slate-800 bg-[#0F172A] text-slate-300 flex flex-col shrink-0 shadow-xl">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 gap-2 font-black text-xl tracking-tight text-white">
-          <span className="flex items-center justify-center bg-[#3B82F6] text-white w-8 h-8 rounded-lg shadow-md font-extrabold font-mono">55</span>
-          55kvartal <span className="text-[#38BDF8] font-medium text-xs border border-[#38BDF8]/40 rounded px-1.5 py-0.5 tracking-normal ml-auto font-mono">CRM</span>
+      {/* SIDEBAR BACKDROP - FOR MOBILE VIEWPORT DRAWER CLOSING */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-[#1C2421]/30 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* CLIENT DRAWER BACKDROP - FOR MOBILE/TABLET VIEWPORTS */}
+      {selectedClient && (
+        <div 
+          className="fixed inset-0 bg-[#1C2421]/30 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setSelectedClient(null)}
+        />
+      )}
+
+      {/* PROPERTY DRAWER BACKDROP - FOR MOBILE/TABLET VIEWPORTS */}
+      {selectedProperty && (
+        <div 
+          className="fixed inset-0 bg-[#1C2421]/30 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setSelectedProperty(null)}
+        />
+      )}
+
+      {/* SIDEBAR - WARM ALABASTER & FOREST INK STYLE */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-68 border-r border-[#4D6256]/15 bg-[#1C2421] text-slate-300 flex flex-col shrink-0 shadow-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
+        <div className="h-16 flex items-center px-6 border-b border-[#2A3530] gap-2 font-black text-xl tracking-tight text-white">
+          <span className="flex items-center justify-center bg-[#4D6256] text-white w-8 h-8 rounded-lg shadow-md font-extrabold font-mono">55</span>
+          <span>55kvartal</span>
+          <span className="text-[#A5C0B0] font-medium text-[10px] border border-[#A5C0B0]/40 rounded px-1 py-0.5 tracking-normal font-mono">CRM</span>
+          
+          {/* Close Sidebar button inside mobile viewports */}
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-1.5 hover:bg-[#2A3530] rounded-lg text-slate-400 hover:text-white ml-auto transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         
         <nav className="flex-1 py-6 px-4 flex flex-col gap-2">
           <button
-            onClick={() => { setActiveTab('dashboard'); setSelectedClient(null); setSelectedProperty(null); }}
+            onClick={() => { setActiveTab('dashboard'); setSelectedClient(null); setSelectedProperty(null); setIsSidebarOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'dashboard' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+              activeTab === 'dashboard' ? 'bg-[#2A3530] text-[#A5C0B0] border-l-4 border-[#A5C0B0] shadow-md' : 'hover:bg-[#2A3530] hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><BarChart3 className="w-4 h-4" /> {t.dashboard}</div>
           </button>
 
           <button
-            onClick={() => { setActiveTab('clients'); setSelectedClient(null); setSelectedProperty(null); }}
+            onClick={() => { setActiveTab('clients'); setSelectedClient(null); setSelectedProperty(null); setIsSidebarOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'clients' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+              activeTab === 'clients' ? 'bg-[#2A3530] text-[#A5C0B0] border-l-4 border-[#A5C0B0] shadow-md' : 'hover:bg-[#2A3530] hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><Users className="w-4 h-4" /> {t.clients}</div>
           </button>
 
           <button
-            onClick={() => { setActiveTab('properties'); setSelectedClient(null); setSelectedProperty(null); }}
+            onClick={() => { setActiveTab('properties'); setSelectedClient(null); setSelectedProperty(null); setIsSidebarOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'properties' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+              activeTab === 'properties' ? 'bg-[#2A3530] text-[#A5C0B0] border-l-4 border-[#A5C0B0] shadow-md' : 'hover:bg-[#2A3530] hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><Building2 className="w-4 h-4" /> {t.properties}</div>
           </button>
 
           <button
-            onClick={() => { setActiveTab('marketing'); setSelectedClient(null); setSelectedProperty(null); }}
+            onClick={() => { setActiveTab('marketing'); setSelectedClient(null); setSelectedProperty(null); setIsSidebarOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'marketing' ? 'bg-[#1E293B] text-[#38BDF8] border-l-4 border-[#38BDF8] shadow-md' : 'hover:bg-slate-800 hover:text-white'
+              activeTab === 'marketing' ? 'bg-[#2A3530] text-[#A5C0B0] border-l-4 border-[#A5C0B0] shadow-md' : 'hover:bg-[#2A3530] hover:text-white'
             }`}
           >
             <div className="flex items-center gap-3"><Megaphone className="w-4 h-4" /> {t.marketing}</div>
           </button>
         </nav>
 
-        {/* Language Switcher Only (Seeder completely removed) */}
-        <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
+        {/* Language Switcher Only */}
+        <div className="p-4 border-t border-[#2A3530] flex flex-col gap-2">
           <button
             onClick={() => setLang(lang === 'uz' ? 'ru' : 'uz')}
-            className="w-full py-2.5 px-3 bg-[#1E293B] border border-slate-700 text-xs font-black rounded-lg hover:border-slate-500 hover:text-white transition-all tracking-wider text-center cursor-pointer"
+            className="w-full py-2.5 px-3 bg-[#2A3530] border border-[#4D6256]/20 text-xs font-black rounded-lg hover:border-[#A5C0B0] hover:text-white transition-all tracking-wider text-center cursor-pointer"
           >
             {t.lang}
           </button>
@@ -520,10 +555,19 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC]">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#F9F8F6]">
         {/* TOP BAR */}
-        <header className="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white shrink-0 z-10 shadow-sm">
+        <header className="h-16 border-b border-[#4D6256]/15 flex items-center justify-between px-6 bg-white shrink-0 z-10 shadow-xs">
           <div className="flex items-center gap-4 flex-1">
+            {/* Mobile Hamburger menu */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-[#1C2421] hover:bg-[#4D6256]/10 rounded-xl transition-colors cursor-pointer mr-1"
+              title="Menu"
+            >
+              <Menu className="w-5.5 h-5.5" />
+            </button>
+
             <div className="relative w-full max-w-xl">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
@@ -531,17 +575,17 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 placeholder={t.search} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all"
+                className="w-full pl-10 pr-4 py-2 text-sm border border-[#4D6256]/20 rounded-xl bg-[#F9F8F6] focus:bg-white focus:outline-none focus:border-[#4D6256] focus:ring-4 focus:ring-[#4D6256]/5 transition-all text-[#1C2421] placeholder-slate-400 font-medium"
               />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title={t.refresh}>
+            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-[#1C2421] hover:bg-[#4D6256]/10 rounded-xl transition-all" title={t.refresh}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button 
               onClick={() => activeTab === 'clients' ? setIsClientModalOpen(true) : setIsPropModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1C2421] hover:bg-[#2A3530] text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               {activeTab === 'clients' ? t.newClient : t.newProperty}
@@ -557,7 +601,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </span>
             <select 
               value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-              className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+              className="text-xs font-bold bg-[#F9F8F6] border border-[#4D6256]/20 rounded-lg px-3 py-2 outline-none focus:border-[#4D6256] cursor-pointer hover:bg-[#4D6256]/5 transition-all text-[#1C2421]"
             >
               <option value="all">{t.allCategories}</option>
               <option value="zhiloy">Жилой (Zhiloy)</option>
@@ -565,7 +609,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </select>
             <select 
               value={filterDeal} onChange={e => setFilterDeal(e.target.value)}
-              className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+              className="text-xs font-bold bg-[#F9F8F6] border border-[#4D6256]/20 rounded-lg px-3 py-2 outline-none focus:border-[#4D6256] cursor-pointer hover:bg-[#4D6256]/5 transition-all text-[#1C2421]"
             >
               <option value="all">{t.allDeals}</option>
               <option value="buy">Buy / Sale</option>
@@ -573,7 +617,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </select>
             <select 
               value={filterRayon} onChange={e => setFilterRayon(e.target.value)}
-              className="text-xs font-bold bg-[#F8FAFC] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+              className="text-xs font-bold bg-[#F9F8F6] border border-[#4D6256]/20 rounded-lg px-3 py-2 outline-none focus:border-[#4D6256] cursor-pointer hover:bg-[#4D6256]/5 transition-all text-[#1C2421]"
             >
               <option value="all">{t.allLocations}</option>
               {TASHKENT_RAYONS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -584,7 +628,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Sort:</span>
               <select 
                 value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-                className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-900 cursor-pointer hover:bg-slate-100 transition-all text-[#0F172A]"
+                className="text-xs font-bold bg-[#F9F8F6] border border-[#4D6256]/20 rounded-lg px-3 py-2 outline-none focus:border-[#4D6256] cursor-pointer hover:bg-[#4D6256]/5 transition-all text-[#1C2421]"
               >
                 <option value="newest">Yangi (Newest)</option>
                 <option value="price-asc">Narx: o'sish (Price: Low to High)</option>
@@ -607,40 +651,40 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               
               {/* Aggregates row */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                <div className="bg-white p-6 rounded-2xl border border-[#4D6256]/15 shadow-xs flex items-center justify-between hover:border-[#4D6256]/40 transition-all">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.totalProperties}</span>
-                    <span className="text-4xl font-black text-[#0F172A] mt-1.5">{formatNumber(activePropertiesCount)}</span>
+                    <span className="text-4xl font-black text-[#1C2421] mt-1.5">{formatNumber(activePropertiesCount)}</span>
                     <span className="text-[10px] text-slate-400 font-bold mt-2">{formatNumber(archivedPropertiesCount)} Archived</span>
                   </div>
-                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Building2 className="w-6 h-6" /></div>
+                  <div className="p-3 bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#4D6256] rounded-xl"><Building2 className="w-6 h-6" /></div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                <div className="bg-white p-6 rounded-2xl border border-[#4D6256]/15 shadow-xs flex items-center justify-between hover:border-[#4D6256]/40 transition-all">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.totalClients}</span>
-                    <span className="text-4xl font-black text-[#0F172A] mt-1.5">{formatNumber(activeClientsCount)}</span>
-                    <span className="text-[10px] text-emerald-600 font-extrabold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {formatNumber(closedClientsCount)} Bitim yopildi</span>
+                    <span className="text-4xl font-black text-[#1C2421] mt-1.5">{formatNumber(activeClientsCount)}</span>
+                    <span className="text-[10px] text-emerald-750 font-extrabold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {formatNumber(closedClientsCount)} Bitim yopildi</span>
                   </div>
-                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Users className="w-6 h-6" /></div>
+                  <div className="p-3 bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#4D6256] rounded-xl"><Users className="w-6 h-6" /></div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                <div className="bg-white p-6 rounded-2xl border border-[#4D6256]/15 shadow-xs flex items-center justify-between hover:border-[#4D6256]/40 transition-all">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.activeListings} (Vol)</span>
-                    <span className="text-4xl font-black text-[#0F172A] mt-1.5 font-mono">{formatPrice(activePropertiesVolume)}</span>
+                    <span className="text-4xl font-black text-[#1C2421] mt-1.5 font-mono">{formatPrice(activePropertiesVolume)}</span>
                     <span className="text-[10px] text-slate-400 font-bold mt-2">{formatNumber(dealTypeSaleCount)} Sotuv / {formatNumber(dealTypeRentCount)} Ijara</span>
                   </div>
-                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><DollarSign className="w-6 h-6" /></div>
+                  <div className="p-3 bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#4D6256] rounded-xl"><DollarSign className="w-6 h-6" /></div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-slate-400 transition-all">
+                <div className="bg-white p-6 rounded-2xl border border-[#4D6256]/15 shadow-xs flex items-center justify-between hover:border-[#4D6256]/40 transition-all">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t.budgetUnderManagement}</span>
-                    <span className="text-4xl font-black text-[#0F172A] mt-1.5 font-mono">{formatPrice(totalClientsBudget)}</span>
+                    <span className="text-4xl font-black text-[#1C2421] mt-1.5 font-mono">{formatPrice(totalClientsBudget)}</span>
                     <span className="text-[10px] text-slate-400 font-bold mt-2">Max client target liquidity</span>
                   </div>
-                  <div className="p-3 bg-slate-50 border border-slate-200 text-[#1E3A8A] rounded-xl"><Tag className="w-6 h-6" /></div>
+                  <div className="p-3 bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#4D6256] rounded-xl"><Tag className="w-6 h-6" /></div>
                 </div>
               </div>
 
@@ -727,15 +771,15 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
           {activeTab === 'clients' && (
             <div className="h-full flex overflow-x-auto p-6 gap-6 scrollbar-thin">
               {[
-                { title: t.statusNew, items: pipelineNew, borderStyle: 'border-t-blue-500' },
-                { title: t.statusNegotiating, items: pipelineNegotiating, borderStyle: 'border-t-amber-500' },
-                { title: t.statusClosed, items: pipelineClosed, borderStyle: 'border-t-emerald-500' },
+                { title: t.statusNew, items: pipelineNew, borderStyle: 'border-t-[#4D6256]' },
+                { title: t.statusNegotiating, items: pipelineNegotiating, borderStyle: 'border-t-[#A5C0B0]' },
+                { title: t.statusClosed, items: pipelineClosed, borderStyle: 'border-t-[#1C2421]' },
                 { title: t.statusArchived, items: pipelineArchived, borderStyle: 'border-t-slate-400' },
               ].map(column => (
                 <div key={column.title} className="flex-1 min-w-[280px] max-w-[350px] flex flex-col">
                   <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest">{column.title}</h3>
-                    <span className="text-[10px] font-extrabold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{column.items.length}</span>
+                    <h3 className="text-xs font-extrabold text-[#1C2421] uppercase tracking-widest">{column.title}</h3>
+                    <span className="text-[10px] font-extrabold bg-[#4D6256]/10 text-[#4D6256] px-2 py-0.5 rounded-full">{column.items.length}</span>
                   </div>
                   <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none">
                     {column.items.map(client => (
@@ -743,22 +787,22 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                         key={client.id}
                         onClick={() => setSelectedClient(client)}
                         className={`bg-white border-t-2 ${column.borderStyle} border-x border-b p-4.5 rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                          selectedClient?.id === client.id ? 'ring-2 ring-slate-900 border-slate-900' : 'border-slate-200/80 hover:border-slate-400'
+                          selectedClient?.id === client.id ? 'ring-2 ring-[#4D6256] border-[#4D6256]' : 'border-[#4D6256]/10 hover:border-[#4D6256]/30'
                         }`}
                       >
                         <div className="flex justify-between items-start mb-2.5">
-                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-[#0F172A]">
+                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#1C2421]">
                              {client.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
                            </span>
-                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#1E3A8A]/5 text-[#1E3A8A] border border-[#1E3A8A]/20">
+                           <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 text-[#4D6256] border border-[#4D6256]/20">
                              {client.deal_type === 'rent' ? 'Rent' : 'Buy'}
                            </span>
                         </div>
-                        <div className="font-black text-lg mb-1 text-[#0F172A] tracking-tight leading-snug">{client.name}</div>
+                        <div className="font-black text-lg mb-1 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
                         <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-semibold">
                           <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone}
                         </div>
-                        <div className="text-sm font-black text-[#1E3A8A] bg-[#1E3A8A]/5 border border-[#1E3A8A]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
+                        <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
                           {client.price_min ? `${formatPrice(client.price_min)} - ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/mo' : ''}
                         </div>
                         {client.notes && (
@@ -792,49 +836,49 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                         key={prop.id}
                         onClick={() => setSelectedProperty(prop)}
                         className={`bg-white border p-5 rounded-xl shadow-xs cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between ${
-                          selectedProperty?.id === prop.id ? 'ring-2 ring-slate-900 border-slate-900' : 'border-slate-200 hover:border-slate-400'
+                          selectedProperty?.id === prop.id ? 'ring-2 ring-[#4D6256] border-[#4D6256]' : 'border-[#4D6256]/10 hover:border-[#4D6256]/30'
                         }`}
                       >
                         <div>
                           <div className="flex justify-between items-start mb-3">
-                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.category === 'zhiloy' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                              {prop.category === 'zhiloy' ? 'Жилой' : 'Нежилой'}
+                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.category === 'zhiloy' ? 'bg-[#4D6256]/5 text-[#4D6256] border border-[#4D6256]/25' : 'bg-[#1C2421]/5 text-[#1C2421] border border-[#1C2421]/20'}`}>
+                              {prop.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
                             </span>
-                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                            <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded ${prop.status === 'active' ? 'bg-[#4D6256]/10 text-[#4D6256] border border-[#4D6256]/15' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}>
                               {prop.status === 'active' ? 'Active' : 'Archive'}
                             </span>
                           </div>
                           
-                          <div className="font-extrabold text-base mb-1.5 text-slate-950 leading-snug">{prop.title}</div>
+                          <div className="font-extrabold text-base mb-1.5 text-[#1C2421] leading-snug">{prop.title}</div>
                           
                           <div className="text-xs text-slate-500 mb-2 flex items-center gap-1.5 font-semibold">
                             <MapPin className="w-3.5 h-3.5 text-slate-400" /> {prop.rayon}
                           </div>
                           
                           <div className="flex items-center gap-2 mb-4">
-                            <span className="text-[10px] font-extrabold text-[#1E3A8A] bg-[#1E3A8A]/5 border border-[#1E3A8A]/20 px-2.5 py-0.5 rounded font-mono">
+                            <span className="text-[10px] font-extrabold text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/20 px-2.5 py-0.5 rounded font-mono">
                               {formatPrice(pricePerM2)}/m²
                             </span>
-                            <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest bg-slate-100 border border-slate-200/50 px-2 py-0.5 rounded">
+                            <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded">
                               {prop.deal_type === 'rent' ? 'Rent' : 'Sale'}
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100/80">
                             <div className="flex flex-col">
                               <span className="text-[9px] text-slate-400 uppercase font-bold">{t.area}</span> 
-                              <span className="font-bold text-slate-900">{prop.area} m²</span>
+                              <span className="font-bold text-[#1C2421]">{prop.area} m²</span>
                             </div>
                             {prop.rooms && (
                               <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-400 uppercase font-bold">{t.rooms}</span> 
-                                <span className="font-bold text-slate-900">{prop.rooms} xona</span>
+                                <span className="font-bold text-[#1C2421]">{prop.rooms} xona</span>
                               </div>
                             )}
                           </div>
                         </div>
                         
-                        <div className="text-2xl font-black text-[#0F172A] border-t border-slate-100 pt-3 flex items-center justify-between">
+                        <div className="text-2xl font-black text-[#1C2421] border-t border-slate-100 pt-3 flex items-center justify-between">
                           <span className="font-mono">{formatPrice(prop.price)}</span>
                           <span className="text-[9px] font-bold text-slate-400 uppercase">{prop.deal_type === 'rent' ? '/mo' : ''}</span>
                         </div>
@@ -1008,7 +1052,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                       <button 
                         type="button" 
                         onClick={handleSaveMarketingData}
-                        className="w-full py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {t.savePost}
                       </button>
@@ -1031,18 +1075,18 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
       {/* 5. RIGHT DRAWER: CLIENT DETAILS */}
       {selectedClient && (
-        <aside className="w-[420px] border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
-          <div className="h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-slate-50/50">
-            <h2 className="font-black text-xs uppercase tracking-wider text-slate-400">{t.clients} Details</h2>
+        <aside className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] border-l border-[#4D6256]/15 bg-white flex flex-col shrink-0 shadow-2xl animate-fade-in-right md:relative md:z-20">
+          <div className="h-16 border-b border-[#4D6256]/15 flex items-center justify-between px-6 shrink-0 bg-[#F9F8F6]">
+            <h2 className="font-black text-xs uppercase tracking-wider text-[#4D6256]">{t.clients} Details</h2>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setEditingClient(selectedClient)} 
-                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors"
+                className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer"
                 title={t.edit}
               >
                 <Edit3 className="w-4 h-4" />
               </button>
-              <button onClick={() => setSelectedClient(null)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors">
+              <button onClick={() => setSelectedClient(null)} className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1050,8 +1094,8 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
           
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
             <div>
-              <h1 className="text-2xl font-black mb-1.5 text-slate-950 tracking-tight leading-tight">{selectedClient.name}</h1>
-              <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-slate-600 hover:text-black flex items-center gap-2 mb-4 w-fit px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-200/60 font-mono">
+              <h1 className="text-2xl font-black mb-1.5 text-[#1C2421] tracking-tight leading-tight">{selectedClient.name}</h1>
+              <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-[#4D6256] hover:text-[#1C2421] flex items-center gap-2 mb-4 w-fit px-2.5 py-1 bg-[#4D6256]/5 rounded-lg border border-[#4D6256]/15 font-mono">
                 <Phone className="w-3.5 h-3.5" /> {selectedClient.phone}
               </a>
               <div className="flex flex-col gap-1.5">
@@ -1059,7 +1103,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 <select 
                   value={selectedClient.status || 'active'}
                   onChange={(e) => handleClientStatusChange(selectedClient.id!, e.target.value)}
-                  className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-slate-900 shadow-xs cursor-pointer w-full"
+                  className="text-xs font-bold bg-white border border-[#4D6256]/20 rounded-xl px-3 py-2.5 outline-none focus:border-[#4D6256] shadow-xs cursor-pointer w-full text-[#1C2421]"
                 >
                   <option value="active">{t.statusNew} (Active)</option>
                   <option value="negotiating">{t.statusNegotiating} (In Progress)</option>
@@ -1070,42 +1114,42 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
 
             {/* Criteria display */}
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs shadow-xs">
-              <h3 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3.5">Client Requirements</h3>
+            <div className="bg-[#F9F8F6] border border-[#4D6256]/15 rounded-2xl p-5 text-xs shadow-xs">
+              <h3 className="text-[9px] font-extrabold text-[#4D6256] uppercase tracking-widest mb-3.5">Client Requirements</h3>
               <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Category</span>
-                  <span className="font-bold text-slate-950">{selectedClient.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
+                  <span className="font-bold text-[#1C2421]">{selectedClient.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Deal Type</span>
-                  <span className="font-bold text-slate-950 capitalize">{selectedClient.deal_type}</span>
+                  <span className="font-bold text-[#1C2421] capitalize">{selectedClient.deal_type}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.budget}</span>
-                  <span className="font-mono font-black text-slate-900">{selectedClient.price_min ? `${formatPrice(selectedClient.price_min)} - ` : ''}{formatPrice(selectedClient.price_max)}</span>
+                  <span className="font-mono font-black text-[#1C2421]">{selectedClient.price_min ? `${formatPrice(selectedClient.price_min)} - ` : ''}{formatPrice(selectedClient.price_max)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.area}</span>
-                  <span className="font-bold text-slate-950">&gt;= {selectedClient.min_area} m²</span>
+                  <span className="font-bold text-[#1C2421]">&gt;= {selectedClient.min_area} m²</span>
                 </div>
                 {selectedClient.rooms && (
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.rooms}</span>
-                    <span className="font-bold text-slate-950">{selectedClient.rooms}</span>
+                    <span className="font-bold text-[#1C2421]">{selectedClient.rooms}</span>
                   </div>
                 )}
                 {selectedClient.orientir && (
                   <div className="col-span-2">
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Orientir</span>
-                    <span className="font-semibold text-slate-700 leading-relaxed block">{selectedClient.orientir}</span>
+                    <span className="font-semibold text-[#1C2421] leading-relaxed block">{selectedClient.orientir}</span>
                   </div>
                 )}
                 <div className="col-span-2">
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-1.5">Locations (Rayons)</span>
                   <div className="flex flex-wrap gap-1">
                     {selectedClient.rayons?.length ? selectedClient.rayons.map(r => (
-                      <span key={r} className="text-[10px] font-bold bg-[#0F172A] text-white px-2 py-0.5 rounded">{r}</span>
+                      <span key={r} className="text-[10px] font-bold bg-[#4D6256] text-white px-2 py-0.5 rounded">{r}</span>
                     )) : <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Any Location</span>}
                   </div>
                 </div>
@@ -1119,7 +1163,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 value={selectedClient.notes || ''}
                 onChange={(e) => handleNotesChange(selectedClient.id!, e.target.value)}
                 placeholder="Start typing client notes here..."
-                className="w-full text-xs font-semibold p-4 border border-slate-200 rounded-2xl min-h-[100px] outline-none focus:border-slate-900 focus:bg-white resize-y transition-shadow bg-slate-50 leading-relaxed"
+                className="w-full text-xs font-semibold p-4 border border-[#4D6256]/20 rounded-2xl min-h-[100px] outline-none focus:border-[#4D6256] focus:bg-white resize-y transition-shadow bg-[#F9F8F6] text-[#1C2421] leading-relaxed"
               />
             </div>
 
@@ -1129,38 +1173,38 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                   {t.matchedProperties}
                 </label>
-                <span className="text-[10px] font-extrabold bg-[#0F172A] text-white px-2.5 py-0.5 rounded-full shadow-xs">{clientMatches.length}</span>
+                <span className="text-[10px] font-extrabold bg-[#4D6256] text-white px-2.5 py-0.5 rounded-full shadow-xs">{clientMatches.length}</span>
               </div>
               
               {clientMatches.length === 0 ? (
-                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl font-semibold">{t.noMatches}</div>
+                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-[#4D6256]/15 rounded-2xl font-semibold">{t.noMatches}</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {clientMatches.map((m, i) => (
                     <div 
                       key={i} 
                       onClick={() => setExpandedMatchId(expandedMatchId === m.property!.id ? null : m.property!.id!)}
-                      className="border border-slate-200 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-slate-900 transition-colors cursor-pointer group"
+                      className="border border-[#4D6256]/15 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-[#4D6256] transition-colors cursor-pointer group"
                     >
-                      <div className="absolute top-0 right-0 bg-[#0F172A] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
+                      <div className="absolute top-0 right-0 bg-[#4D6256] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm font-mono">
                         {m.score}% Match
                       </div>
-                      <div className="font-bold text-slate-950 pr-16 truncate group-hover:underline flex items-center gap-1">
+                      <div className="font-bold text-[#1C2421] pr-16 truncate group-hover:underline flex items-center gap-1">
                         {m.property!.title}
                       </div>
                       <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1"><MapPin className="w-3 h-3" /> {m.property!.rayon}</div>
-                      <div className="font-mono font-black text-slate-900 mt-1">{formatPrice(m.property!.price)}</div>
+                      <div className="font-mono font-black text-[#1C2421] mt-1">{formatPrice(m.property!.price)}</div>
                       
                       {/* Matching factors toggler */}
-                      <div className="flex items-center gap-1 text-[10px] text-sky-600 font-bold mt-1">
+                      <div className="flex items-center gap-1 text-[10px] text-[#4D6256] font-bold mt-1">
                         {t.matchingFactorsTitle} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedMatchId === m.property!.id ? 'rotate-180' : ''}`} />
                       </div>
 
                       {expandedMatchId === m.property!.id && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-slate-50/70 p-2.5 rounded-lg">
+                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-[#F9F8F6] p-2.5 rounded-lg">
                           {m.matchingFactors.map((factor, idx) => (
                             <div key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-600 font-semibold">
-                              <span className="text-emerald-500 font-black">✓</span> {factor}
+                              <span className="text-[#4D6256] font-black">✓</span> {factor}
                             </div>
                           ))}
                         </div>
@@ -1172,7 +1216,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
             
             <div className="mt-auto pt-8 flex justify-center border-t border-slate-100">
-               <button onClick={deleteSelectedClient} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all">
+               <button onClick={deleteSelectedClient} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all cursor-pointer">
                  Delete Client permanently
                </button>
             </div>
@@ -1182,34 +1226,34 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
       {/* 6. RIGHT DRAWER: PROPERTY DETAILS */}
       {selectedProperty && (
-        <aside className="w-[420px] border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl z-20 animate-fade-in-right relative">
-          <div className="h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-slate-50/50">
-            <h2 className="font-black text-xs uppercase tracking-wider text-slate-400">{t.properties} Details</h2>
+        <aside className="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] border-l border-[#4D6256]/15 bg-white flex flex-col shrink-0 shadow-2xl animate-fade-in-right md:relative md:z-20">
+          <div className="h-16 border-b border-[#4D6256]/15 flex items-center justify-between px-6 shrink-0 bg-[#F9F8F6]">
+            <h2 className="font-black text-xs uppercase tracking-wider text-[#4D6256]">{t.properties} Details</h2>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setEditingProperty(selectedProperty)} 
-                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors"
+                className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer"
                 title={t.edit}
               >
                 <Edit3 className="w-4 h-4" />
               </button>
-              <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-black transition-colors">
+              <button onClick={() => setSelectedProperty(null)} className="p-1.5 hover:bg-[#4D6256]/10 rounded-lg text-slate-500 hover:text-[#1C2421] transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin text-[#1C2421]">
             <div>
-              <h1 className="text-2xl font-black mb-2 text-slate-950 tracking-tight leading-tight">{selectedProperty.title}</h1>
-              <div className="text-2xl font-mono font-black text-slate-950 mb-4">{formatPrice(selectedProperty.price)}</div>
+              <h1 className="text-2xl font-black mb-2 text-[#1C2421] tracking-tight leading-tight">{selectedProperty.title}</h1>
+              <div className="text-2xl font-mono font-black text-[#1C2421] mb-4">{formatPrice(selectedProperty.price)}</div>
               
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Listing Status</label>
                 <select 
                   value={selectedProperty.status || 'active'}
                   onChange={(e) => handlePropertyStatusChange(selectedProperty.id!, e.target.value)}
-                  className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-slate-900 shadow-xs cursor-pointer w-full"
+                  className="text-xs font-bold bg-white border border-[#4D6256]/20 rounded-xl px-3 py-2.5 outline-none focus:border-[#4D6256] shadow-xs cursor-pointer w-full text-[#1C2421]"
                 >
                   <option value="active">Active Listing</option>
                   <option value="archived">Archived / Sold</option>
@@ -1218,51 +1262,51 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
 
             {/* Criteria Specs */}
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs shadow-xs">
-              <h3 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3.5">Property Specs</h3>
+            <div className="bg-[#F9F8F6] border border-[#4D6256]/15 rounded-2xl p-5 text-xs shadow-xs">
+              <h3 className="text-[9px] font-extrabold text-[#4D6256] uppercase tracking-widest mb-3.5">Property Specs</h3>
               <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Category</span>
-                  <span className="font-bold text-slate-950">{selectedProperty.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
+                  <span className="font-bold text-[#1C2421]">{selectedProperty.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Deal Type</span>
-                  <span className="font-bold text-slate-950 capitalize">{selectedProperty.deal_type}</span>
+                  <span className="font-bold text-[#1C2421] capitalize">{selectedProperty.deal_type}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Location</span>
-                  <span className="font-bold text-slate-950 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.rayon}</span>
+                  <span className="font-bold text-[#1C2421] flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.rayon}</span>
                 </div>
                 {selectedProperty.orientir && (
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Orientir</span>
-                    <span className="font-bold text-slate-950">{selectedProperty.orientir}</span>
+                    <span className="font-bold text-[#1C2421]">{selectedProperty.orientir}</span>
                   </div>
                 )}
                 <div>
                   <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.area}</span>
-                  <span className="font-black text-slate-900">{selectedProperty.area} m²</span>
+                  <span className="font-black text-[#1C2421]">{selectedProperty.area} m²</span>
                 </div>
                 {selectedProperty.rooms && (
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">{t.rooms}</span>
-                    <span className="font-black text-slate-900">{selectedProperty.rooms} xona</span>
+                    <span className="font-black text-[#1C2421]">{selectedProperty.rooms} xona</span>
                   </div>
                 )}
                 {selectedProperty.floor !== null && (
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase block mb-0.5">Qavat (Floor)</span>
-                    <span className="font-bold text-slate-950">{selectedProperty.floor} / {selectedProperty.max_floor || 'N/A'}</span>
+                    <span className="font-bold text-[#1C2421]">{selectedProperty.floor} / {selectedProperty.max_floor || 'N/A'}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Owner Contact */}
-            <div className="border border-slate-200/70 rounded-2xl p-5 text-xs shadow-xs bg-white">
+            <div className="border border-[#4D6256]/15 rounded-2xl p-5 text-xs shadow-xs bg-white">
                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Owner Contact</span>
-               <div className="font-bold text-slate-900 mb-1.5">{selectedProperty.contact_name || 'No name provided'}</div>
-               <a href={`tel:${selectedProperty.contact_phone}`} className="text-xs font-bold text-slate-900 hover:text-black flex items-center gap-1.5 w-fit px-2.5 py-1 bg-slate-50 border border-slate-200/60 rounded-lg">
+               <div className="font-bold text-[#1C2421] mb-1.5">{selectedProperty.contact_name || 'No name provided'}</div>
+               <a href={`tel:${selectedProperty.contact_phone}`} className="text-xs font-bold text-[#1C2421] hover:text-black flex items-center gap-1.5 w-fit px-2.5 py-1 bg-[#4D6256]/5 border border-[#4D6256]/15 rounded-lg font-mono">
                 <Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.contact_phone}
               </a>
             </div>
@@ -1273,36 +1317,36 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
                   {t.matchedClients}
                 </label>
-                <span className="text-[10px] font-extrabold bg-[#0F172A] text-white px-2.5 py-0.5 rounded-full shadow-xs">{propertyMatches.length}</span>
+                <span className="text-[10px] font-extrabold bg-[#4D6256] text-white px-2.5 py-0.5 rounded-full shadow-xs">{propertyMatches.length}</span>
               </div>
               
               {propertyMatches.length === 0 ? (
-                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl font-semibold">{t.noMatches}</div>
+                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-[#4D6256]/15 rounded-2xl font-semibold">{t.noMatches}</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {propertyMatches.map((m, i) => (
                     <div 
                       key={i} 
                       onClick={() => setExpandedMatchId(expandedMatchId === m.client!.id ? null : m.client!.id!)}
-                      className="border border-slate-200 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-slate-900 transition-colors cursor-pointer group"
+                      className="border border-[#4D6256]/15 rounded-xl p-3.5 text-xs flex flex-col gap-1.5 relative bg-white shadow-xs hover:border-[#4D6256] transition-colors cursor-pointer group"
                     >
-                      <div className="absolute top-0 right-0 bg-[#0F172A] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm">
+                      <div className="absolute top-0 right-0 bg-[#4D6256] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm font-mono">
                         {m.score}% Match
                       </div>
-                      <div className="font-bold text-slate-950 pr-16 group-hover:underline">{m.client!.name}</div>
+                      <div className="font-bold text-[#1C2421] pr-16 group-hover:underline">{m.client!.name}</div>
                       <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" /> {m.client!.phone}</div>
-                      <div className="font-mono font-black text-slate-900 mt-1">{formatPrice(m.client!.price_min)} - {formatPrice(m.client!.price_max)}</div>
+                      <div className="font-mono font-black text-[#1C2421] mt-1">{formatPrice(m.client!.price_min)} - {formatPrice(m.client!.price_max)}</div>
                       
                       {/* Factors toggler */}
-                      <div className="flex items-center gap-1 text-[10px] text-sky-600 font-bold mt-1">
+                      <div className="flex items-center gap-1 text-[10px] text-[#4D6256] font-bold mt-1">
                         {t.matchingFactorsTitle} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedMatchId === m.client!.id ? 'rotate-180' : ''}`} />
                       </div>
 
                       {expandedMatchId === m.client!.id && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-slate-50/70 p-2.5 rounded-lg">
+                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1 bg-[#F9F8F6] p-2.5 rounded-lg">
                           {m.matchingFactors.map((factor, idx) => (
                             <div key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-600 font-semibold">
-                              <span className="text-emerald-500 font-black">✓</span> {factor}
+                              <span className="text-[#4D6256] font-black">✓</span> {factor}
                             </div>
                           ))}
                         </div>
@@ -1314,7 +1358,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
             
             <div className="mt-auto pt-8 flex justify-center border-t border-slate-100">
-               <button onClick={deleteSelectedProperty} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all">
+               <button onClick={deleteSelectedProperty} className="text-xs font-extrabold text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl transition-all cursor-pointer">
                  Delete Property permanently
                </button>
             </div>
@@ -1469,13 +1513,13 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
           
           <div>
              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2.5">Tumanlar (Locations)</label>
-             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-slate-50 border border-slate-100 rounded-lg">
+             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-[#F9F8F6] border border-[#4D6256]/15 rounded-lg">
                 {TASHKENT_RAYONS.map(r => (
                   <button 
                     key={r} type="button" 
                     onClick={() => toggleRayon(r)}
-                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
-                      form.rayons.includes(r) ? 'bg-[#0F172A] text-white border-slate-900 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      form.rayons.includes(r) ? 'bg-[#4D6256] text-white border-[#4D6256] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                     }`}
                   >
                     {r}
@@ -1486,12 +1530,12 @@ function SimpleClientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, on
           
           <div>
             <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Izoh / Qo'shimcha eslatmalar (Notes)</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all" rows={3} placeholder="Mijoz talablari haqida batafsil ma'lumotlar..." />
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all text-[#1C2421]" rows={3} placeholder="Mijoz talablari haqida batafsil ma'lumotlar..." />
           </div>
           
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Client</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Client</button>
           </div>
         </form>
       </div>
@@ -1610,8 +1654,8 @@ function SimplePropertyModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, 
           </div>
           
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Property</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Property</button>
           </div>
         </form>
       </div>
@@ -1764,13 +1808,13 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
 
           <div>
              <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-2.5">Tumanlar (Rayons)</label>
-             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-slate-50 border border-slate-100 rounded-lg">
+             <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto p-2 bg-[#F9F8F6] border border-[#4D6256]/15 rounded-lg">
                 {TASHKENT_RAYONS.map(r => (
                   <button 
                     key={r} type="button" 
                     onClick={() => toggleRayon(r)}
-                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
-                      form.rayons.includes(r) ? 'bg-[#0F172A] text-white border-slate-900 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      form.rayons.includes(r) ? 'bg-[#4D6256] text-white border-[#4D6256] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                     }`}
                   >
                     {r}
@@ -1781,12 +1825,12 @@ function EditClientModal({ client, isOpen, onClose, onSuccess }: EditClientModal
 
           <div>
             <label className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Izoh / Qo'shimcha eslatmalar (Notes)</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all" rows={3} />
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full border border-slate-200 p-3 rounded-lg outline-none focus:border-slate-900 resize-none font-semibold text-xs leading-relaxed focus:bg-white transition-all text-[#1C2421]" rows={3} />
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Changes</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Changes</button>
           </div>
         </form>
       </div>
@@ -1940,8 +1984,8 @@ function EditPropertyModal({ property, isOpen, onClose, onSuccess }: EditPropert
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-95">Save Changes</button>
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-bold transition-all cursor-pointer">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white rounded-xl font-bold shadow-md transition-all active:scale-95 cursor-pointer">Save Changes</button>
           </div>
         </form>
       </div>
