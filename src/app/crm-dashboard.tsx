@@ -6,13 +6,14 @@ import {
   Phone, X, Check, RefreshCw, Filter, ArrowRight,
   BarChart3, Megaphone, Copy, Edit3, Database, 
   ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info,
-  Menu, Send, Download, Printer
+  Menu, Send, Download, Printer, Eye, Trash2, CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import { 
   Property, Client, addProperty, addClient, getProperties, 
   getClients, updatePropertyStatus, updateClientStatus, updateClientNotes,
   deleteProperty, deleteClient, getMatchesForClient, 
-  getMatchesForProperty, MatchResult, seedDatabase, updateProperty, updateClient
+  getMatchesForProperty, MatchResult, seedDatabase, updateProperty, updateClient,
+  ShownProperty, getShownProperties, addShownProperty, removeShownProperty, updateShownPropertyResult
 } from './actions';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -186,6 +187,8 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const [clientMatches, setClientMatches] = useState<MatchResult[]>([]);
   const [propertyMatches, setPropertyMatches] = useState<MatchResult[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
+  const [shownProperties, setShownProperties] = useState<ShownProperty[]>([]);
+  const [showAddShownProp, setShowAddShownProp] = useState(false);
 
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isPropModalOpen, setIsPropModalOpen] = useState(false);
@@ -235,10 +238,15 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
       if (selectedClient?.id) {
         const results = await getMatchesForClient(selectedClient.id);
         setClientMatches(results);
+        const shown = await getShownProperties(selectedClient.id);
+        setShownProperties(shown);
+      } else {
+        setShownProperties([]);
       }
     }
     fetchClientMatches();
     setExpandedMatchId(null);
+    setShowAddShownProp(false);
   }, [selectedClient?.id]);
 
   useEffect(() => {
@@ -1270,6 +1278,123 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 placeholder="Start typing client notes here..."
                 className="w-full text-xs font-semibold p-4 border border-[#4D6256]/20 rounded-2xl min-h-[100px] outline-none focus:border-[#4D6256] focus:bg-white resize-y transition-shadow bg-[#F9F8F6] text-[#1C2421] leading-relaxed"
               />
+            </div>
+
+            {/* SHOWN PROPERTIES — Ko'rsatilgan ob'ektlar */}
+            <div>
+              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" /> Ko'rsatilgan ob'ektlar
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold bg-blue-500 text-white px-2.5 py-0.5 rounded-full shadow-xs">{shownProperties.length}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAddShownProp(!showAddShownProp)} 
+                    className="p-1 hover:bg-[#4D6256]/10 rounded-lg text-[#4D6256] transition-colors cursor-pointer"
+                    title="Ob'ekt qo'shish"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Add from matched properties */}
+              {showAddShownProp && (
+                <div className="mb-3 bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-blue-700 mb-2">Mos ob'ektlardan tanlang:</p>
+                  <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
+                    {properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).length === 0 ? (
+                      <p className="text-[10px] text-slate-400 text-center py-2">Barcha ob'ektlar allaqachon qo'shilgan</p>
+                    ) : (
+                      properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).slice(0, 15).map(prop => (
+                        <button
+                          key={prop.id}
+                          type="button"
+                          onClick={async () => {
+                            await addShownProperty(selectedClient.id!, prop.id!);
+                            const shown = await getShownProperties(selectedClient.id!);
+                            setShownProperties(shown);
+                          }}
+                          className="flex items-center justify-between text-left px-3 py-2 bg-white border border-blue-100 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[11px] font-bold text-[#1C2421] truncate">{prop.title}</div>
+                            <div className="text-[10px] text-slate-400 font-semibold">{prop.rayon} • {formatPrice(prop.price)} • {prop.area}m²</div>
+                          </div>
+                          <Plus className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600 shrink-0 ml-2" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {shownProperties.length === 0 ? (
+                <div className="text-xs text-slate-400 py-6 text-center border-2 border-dashed border-blue-200/50 rounded-2xl font-semibold">
+                  <Eye className="w-8 h-8 mx-auto mb-2 text-slate-200" />
+                  Hali ob'ekt ko'rsatilmagan
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {shownProperties.map((sp, i) => (
+                    <div key={sp.id || i} className="border border-[#4D6256]/15 rounded-xl p-3.5 bg-white shadow-xs relative group">
+                      <div className="absolute top-2 left-2 text-[9px] font-black text-white bg-blue-500 w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                        {i + 1}
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          await removeShownProperty(selectedClient.id!, sp.property_id);
+                          const shown = await getShownProperties(selectedClient.id!);
+                          setShownProperties(shown);
+                        }}
+                        className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-all cursor-pointer"
+                        title="Olib tashlash"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      {sp.property && (
+                        <div className="pl-6">
+                          <div className="font-bold text-xs text-[#1C2421] truncate pr-6">{sp.property.title}</div>
+                          <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3" /> {sp.property.rayon}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <span className="font-mono font-black text-xs text-[#1C2421]">{formatPrice(sp.property.price)}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold">{sp.property.area}m²</span>
+                            {sp.property.rooms && <span className="text-[10px] text-slate-400 font-semibold">{sp.property.rooms}x</span>}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <select
+                              value={sp.result || 'pending'}
+                              onChange={async (e) => {
+                                await updateShownPropertyResult(selectedClient.id!, sp.property_id, e.target.value);
+                                const shown = await getShownProperties(selectedClient.id!);
+                                setShownProperties(shown);
+                              }}
+                              className={`text-[10px] font-bold border rounded-lg px-2 py-1 outline-none cursor-pointer ${
+                                sp.result === 'interested' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' :
+                                sp.result === 'rejected' ? 'bg-red-50 border-red-300 text-red-700' :
+                                'bg-slate-50 border-slate-200 text-slate-600'
+                              }`}
+                            >
+                              <option value="pending">⏳ Kutilmoqda</option>
+                              <option value="interested">✅ Qiziqdi</option>
+                              <option value="rejected">❌ Rad etdi</option>
+                            </select>
+                            {sp.shown_date && (
+                              <span className="text-[9px] text-slate-300 font-semibold">
+                                {new Date(sp.shown_date).toLocaleDateString('ru-RU')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Matches with detailed factors dropdown */}

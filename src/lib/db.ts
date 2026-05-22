@@ -58,6 +58,19 @@ export async function initDb() {
       )
     `;
 
+    // 3. Create shown_properties table
+    await sql`
+      CREATE TABLE IF NOT EXISTS shown_properties (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+        shown_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
+        result VARCHAR(50) DEFAULT 'pending',
+        UNIQUE(client_id, property_id)
+      )
+    `;
+
     isInitialized = true;
     console.log('Database initialized successfully with self-healing tables.');
   } catch (error) {
