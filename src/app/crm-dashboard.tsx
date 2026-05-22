@@ -839,27 +839,29 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
           {/* 2. CLIENTS PIPELINE (KANBAN BOARD) */}
           {activeTab === 'clients' && isMounted && (
             <DragDropContext onDragEnd={onDragEnd}>
-              <div className="h-full flex overflow-x-auto p-6 gap-6 scrollbar-thin">
+              <div className="h-full flex overflow-x-auto p-6 gap-5 scrollbar-thin">
                 {[
-                  { id: 'active', title: t.statusNew || 'Yangi', items: pipelineNew, borderStyle: 'border-t-[#4D6256]' },
-                  { id: 'padbor', title: 'Padbor', items: pipelinePadbor, borderStyle: 'border-t-blue-400' },
-                  { id: 'pokaz', title: 'Pokaz', items: pipelinePokaz, borderStyle: 'border-t-purple-400' },
-                  { id: 'negotiating', title: t.statusNegotiating || 'Muzokara', items: pipelineNegotiating, borderStyle: 'border-t-[#A5C0B0]' },
-                  { id: 'completed', title: t.statusClosed || 'Yopildi', items: pipelineClosed, borderStyle: 'border-t-[#1C2421]' },
-                  { id: 'archived', title: t.statusArchived || 'Arxiv', items: pipelineArchived, borderStyle: 'border-t-slate-400' },
+                  { id: 'active', title: t.statusNew || 'Yangi', items: pipelineNew, borderStyle: 'border-t-emerald-500', headerBg: 'bg-emerald-50 border-emerald-200', headerText: 'text-emerald-700', badgeBg: 'bg-emerald-500', emoji: '🆕' },
+                  { id: 'padbor', title: 'Padbor', items: pipelinePadbor, borderStyle: 'border-t-blue-500', headerBg: 'bg-blue-50 border-blue-200', headerText: 'text-blue-700', badgeBg: 'bg-blue-500', emoji: '🔍' },
+                  { id: 'pokaz', title: 'Pokaz', items: pipelinePokaz, borderStyle: 'border-t-purple-500', headerBg: 'bg-purple-50 border-purple-200', headerText: 'text-purple-700', badgeBg: 'bg-purple-500', emoji: '👁️' },
+                  { id: 'negotiating', title: t.statusNegotiating || 'Muzokara', items: pipelineNegotiating, borderStyle: 'border-t-amber-500', headerBg: 'bg-amber-50 border-amber-200', headerText: 'text-amber-700', badgeBg: 'bg-amber-500', emoji: '🤝' },
+                  { id: 'completed', title: t.statusClosed || 'Bitim', items: pipelineClosed, borderStyle: 'border-t-green-600', headerBg: 'bg-green-50 border-green-200', headerText: 'text-green-700', badgeBg: 'bg-green-600', emoji: '✅' },
+                  { id: 'archived', title: t.statusArchived || 'Arxiv', items: pipelineArchived, borderStyle: 'border-t-slate-400', headerBg: 'bg-slate-50 border-slate-200', headerText: 'text-slate-500', badgeBg: 'bg-slate-400', emoji: '📦' },
                 ].map(column => (
                   <Droppable droppableId={column.id} key={column.id}>
                     {(provided, snapshot) => (
                       <div 
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`flex-1 min-w-[280px] max-w-[350px] flex flex-col ${snapshot.isDraggingOver ? 'bg-slate-50 ring-2 ring-[#4D6256]/20' : ''} rounded-xl transition-colors duration-200`}
+                        className={`flex-1 min-w-[280px] max-w-[350px] flex flex-col ${snapshot.isDraggingOver ? 'ring-2 ring-[#4D6256]/30 bg-[#4D6256]/5' : ''} rounded-2xl transition-all duration-200`}
                       >
-                        <div className="flex items-center justify-between mb-4 px-1">
-                          <h3 className="text-xs font-extrabold text-[#1C2421] uppercase tracking-widest">{column.title}</h3>
-                          <span className="text-[10px] font-extrabold bg-[#4D6256]/10 text-[#4D6256] px-2 py-0.5 rounded-full">{column.items.length}</span>
+                        <div className={`flex items-center justify-between mb-3 px-3 py-2.5 rounded-xl border ${column.headerBg}`}>
+                          <h3 className={`text-xs font-extrabold uppercase tracking-widest flex items-center gap-1.5 ${column.headerText}`}>
+                            <span>{column.emoji}</span> {column.title}
+                          </h3>
+                          <span className={`text-[10px] font-extrabold text-white px-2.5 py-0.5 rounded-full ${column.badgeBg} shadow-sm`}>{column.items.length}</span>
                         </div>
-                        <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none min-h-[200px]">
+                        <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-6 scrollbar-none min-h-[200px] px-0.5">
                           {column.items.map((client, index) => (
                             <Draggable key={client.id} draggableId={client.id!.toString()} index={index}>
                               {(provided, snapshot) => (
@@ -868,29 +870,53 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   onClick={() => setSelectedClient(client)}
-                                  className={`bg-white border-t-2 ${column.borderStyle} border-x border-b p-4.5 rounded-xl shadow-sm cursor-grab active:cursor-grabbing transition-all ${
-                                    snapshot.isDragging ? 'rotate-2 scale-105 shadow-xl ring-2 ring-[#4D6256]' : 'hover:-translate-y-0.5 hover:shadow-md border-[#4D6256]/10 hover:border-[#4D6256]/30'
+                                  className={`bg-white border-t-[3px] ${column.borderStyle} border-x border-b p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all ${
+                                    snapshot.isDragging ? 'rotate-1 scale-[1.03] shadow-2xl ring-2 ring-[#4D6256] z-50' : 'shadow-sm hover:-translate-y-0.5 hover:shadow-lg border-slate-100 hover:border-slate-200'
                                   }`}
                                   style={{...provided.draggableProps.style}}
                                 >
-                                  <div className="flex justify-between items-start mb-2.5">
-                                     <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 border border-[#4D6256]/15 text-[#1C2421]">
-                                       {client.category === 'zhiloy' ? 'Жилой (Turar)' : 'Нежилой (Tijorat)'}
+                                  <div className="flex justify-between items-start mb-2">
+                                     <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                       client.category === 'zhiloy' ? 'bg-sky-50 border border-sky-200 text-sky-700' : 'bg-orange-50 border border-orange-200 text-orange-700'
+                                     }`}>
+                                       {client.category === 'zhiloy' ? '🏠 Turar' : '🏢 Tijorat'}
                                      </span>
-                                     <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[#4D6256]/5 text-[#4D6256] border border-[#4D6256]/20">
-                                       {client.deal_type === 'rent' ? 'Rent' : 'Buy'}
+                                     <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                       client.deal_type === 'rent' ? 'bg-violet-50 border border-violet-200 text-violet-700' : 'bg-teal-50 border border-teal-200 text-teal-700'
+                                     }`}>
+                                       {client.deal_type === 'rent' ? '🔑 Ijara' : '💰 Xarid'}
                                      </span>
                                   </div>
-                                  <div className="font-black text-lg mb-1 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
-                                  <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5 font-semibold">
-                                    <Phone className="w-3.5 h-3.5 text-slate-400" /> {client.phone}
+                                  <div className="font-black text-[15px] mb-1.5 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
+                                  <div className="flex items-center gap-2 mb-2.5">
+                                    <a href={`tel:${client.phone}`} onClick={(e) => e.stopPropagation()} className="text-[11px] text-slate-500 flex items-center gap-1 font-semibold hover:text-[#4D6256] transition-colors">
+                                      <Phone className="w-3 h-3" /> {client.phone}
+                                    </a>
+                                    <a href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded hover:bg-green-100 transition-colors" title="WhatsApp">
+                                      WA
+                                    </a>
                                   </div>
-                                  <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/20 px-3 py-1.5 rounded-lg inline-block font-mono w-full text-center">
-                                    {client.price_min ? `${formatPrice(client.price_min)} - ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/mo' : ''}
+                                  <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/15 px-3 py-2 rounded-lg font-mono w-full text-center">
+                                    {client.price_min ? `${formatPrice(client.price_min)} – ` : ''}{formatPrice(client.price_max)} {client.deal_type === 'rent' ? '/oy' : ''}
                                   </div>
+                                  {client.rayons && client.rayons.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                      {client.rayons.slice(0, 3).map(r => (
+                                        <span key={r} className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                          📍{r}
+                                        </span>
+                                      ))}
+                                      {client.rayons.length > 3 && <span className="text-[9px] font-bold text-slate-400">+{client.rayons.length - 3}</span>}
+                                    </div>
+                                  )}
                                   {client.notes && (
-                                    <div className="mt-3 text-xs text-slate-600 line-clamp-2 border-t border-slate-100 pt-2.5 leading-relaxed font-medium">
+                                    <div className="mt-2.5 text-[11px] text-slate-500 line-clamp-2 border-t border-slate-100 pt-2 leading-relaxed font-medium italic">
                                       {client.notes}
+                                    </div>
+                                  )}
+                                  {client.created_at && (
+                                    <div className="mt-2 text-[9px] text-slate-300 font-semibold flex items-center gap-1">
+                                      <Clock className="w-3 h-3" /> {new Date(client.created_at).toLocaleDateString('ru-RU')}
                                     </div>
                                   )}
                                 </div>
@@ -1203,26 +1229,64 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 scrollbar-thin">
+            {/* Client header */}
             <div>
-              <h1 className="text-2xl font-black mb-1.5 text-[#1C2421] tracking-tight leading-tight">{selectedClient.name}</h1>
-              <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-[#4D6256] hover:text-[#1C2421] flex items-center gap-2 mb-4 w-fit px-2.5 py-1 bg-[#4D6256]/5 rounded-lg border border-[#4D6256]/15 font-mono">
-                <Phone className="w-3.5 h-3.5" /> {selectedClient.phone}
-              </a>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Pipeline Status</label>
-                <select 
-                  value={selectedClient.status || 'active'}
-                  onChange={(e) => handleClientStatusChange(selectedClient.id!, e.target.value)}
-                  className="text-xs font-bold bg-white border border-[#4D6256]/20 rounded-xl px-3 py-2.5 outline-none focus:border-[#4D6256] shadow-xs cursor-pointer w-full text-[#1C2421]"
-                >
-                  <option value="active">{t.statusNew} (Active)</option>
-                  <option value="padbor">Padbor</option>
-                  <option value="pokaz">Pokaz</option>
-                  <option value="negotiating">{t.statusNegotiating} (In Progress)</option>
-                  <option value="completed">{t.statusClosed} (Won)</option>
-                  <option value="archived">{t.statusArchived} (Lost)</option>
-                </select>
+              <h1 className="text-2xl font-black mb-2 text-[#1C2421] tracking-tight leading-tight">{selectedClient.name}</h1>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-[#4D6256] hover:text-[#1C2421] flex items-center gap-1.5 px-2.5 py-1.5 bg-[#4D6256]/5 rounded-lg border border-[#4D6256]/15 font-mono transition-colors">
+                  <Phone className="w-3.5 h-3.5" /> {selectedClient.phone}
+                </a>
+                <a href={`https://wa.me/${selectedClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                  <Send className="w-3.5 h-3.5" /> WhatsApp
+                </a>
+              </div>
+              {selectedClient.created_at && (
+                <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mb-3">
+                  <Clock className="w-3 h-3" /> Qo'shilgan: {new Date(selectedClient.created_at).toLocaleDateString('ru-RU')}
+                </div>
+              )}
+            </div>
+
+            {/* Visual Pipeline Progress */}
+            <div className="bg-[#F9F8F6] border border-[#4D6256]/10 rounded-2xl p-4">
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 block">Pipeline Bosqichi</label>
+              <div className="flex items-center gap-1">
+                {[
+                  { id: 'active', label: 'Yangi', emoji: '🆕', color: 'bg-emerald-500' },
+                  { id: 'padbor', label: 'Padbor', emoji: '🔍', color: 'bg-blue-500' },
+                  { id: 'pokaz', label: 'Pokaz', emoji: '👁️', color: 'bg-purple-500' },
+                  { id: 'negotiating', label: 'Muzokara', emoji: '🤝', color: 'bg-amber-500' },
+                  { id: 'completed', label: 'Bitim', emoji: '✅', color: 'bg-green-600' },
+                  { id: 'archived', label: 'Arxiv', emoji: '📦', color: 'bg-slate-400' },
+                ].map((step, i, arr) => {
+                  const currentStatus = selectedClient.status || 'active';
+                  const statusOrder = ['active', 'padbor', 'pokaz', 'negotiating', 'completed', 'archived'];
+                  const currentIdx = statusOrder.indexOf(currentStatus);
+                  const stepIdx = statusOrder.indexOf(step.id);
+                  const isActive = step.id === currentStatus;
+                  const isPast = stepIdx < currentIdx;
+                  return (
+                    <React.Fragment key={step.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleClientStatusChange(selectedClient.id!, step.id)}
+                        className={`flex flex-col items-center gap-1 flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                          isActive ? `${step.color} text-white shadow-md scale-105` :
+                          isPast ? 'bg-slate-200 text-slate-600' :
+                          'bg-white border border-slate-100 text-slate-400 hover:border-slate-300'
+                        }`}
+                        title={step.label}
+                      >
+                        <span className="text-sm">{step.emoji}</span>
+                        <span className="text-[8px] font-extrabold uppercase tracking-wider leading-none">{step.label}</span>
+                      </button>
+                      {i < arr.length - 1 && (
+                        <div className={`w-2 h-0.5 rounded ${isPast || isActive ? 'bg-[#4D6256]' : 'bg-slate-200'}`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
 
