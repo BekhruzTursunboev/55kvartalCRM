@@ -316,7 +316,8 @@ export async function updateClient(id: number, client: Omit<Client, 'id' | 'crea
 export interface ShownProperty {
   id?: number;
   client_id: number;
-  property_id: number;
+  property_id?: number | null;
+  custom_title?: string | null;
   shown_date?: string;
   notes?: string;
   result?: string; // 'pending', 'interested', 'rejected'
@@ -332,7 +333,7 @@ export async function getShownProperties(clientId: number): Promise<ShownPropert
         p.orientir, p.rooms, p.area, p.floor, p.max_floor, 
         p.contact_name, p.contact_phone, p.status as property_status
       FROM shown_properties sp
-      JOIN properties p ON sp.property_id = p.id
+      LEFT JOIN properties p ON sp.property_id = p.id
       WHERE sp.client_id = ${clientId}
       ORDER BY sp.shown_date DESC
     `;
@@ -340,10 +341,11 @@ export async function getShownProperties(clientId: number): Promise<ShownPropert
       id: row.id,
       client_id: row.client_id,
       property_id: row.property_id,
+      custom_title: row.custom_title,
       shown_date: row.shown_date,
       notes: row.notes,
       result: row.result,
-      property: {
+      property: row.property_id ? {
         id: row.property_id,
         title: row.title,
         category: row.category,
@@ -360,7 +362,7 @@ export async function getShownProperties(clientId: number): Promise<ShownPropert
         contact_name: row.contact_name,
         contact_phone: row.contact_phone,
         status: row.property_status,
-      } as Property
+      } as Property : undefined
     })) as ShownProperty[];
   } catch (error) {
     console.error('Failed to get shown properties:', error);
@@ -368,13 +370,17 @@ export async function getShownProperties(clientId: number): Promise<ShownPropert
   }
 }
 
-export async function addShownProperty(clientId: number, propertyId: number, notes?: string) {
+export async function addShownProperty(
+  clientId: number, 
+  propertyId: number | null, 
+  customTitle?: string | null, 
+  notes?: string
+) {
   await ensureDb();
   try {
     await sql`
-      INSERT INTO shown_properties (client_id, property_id, notes)
-      VALUES (${clientId}, ${propertyId}, ${notes || ''})
-      ON CONFLICT (client_id, property_id) DO NOTHING
+      INSERT INTO shown_properties (client_id, property_id, custom_title, notes)
+      VALUES (${clientId}, ${propertyId}, ${customTitle || null}, ${notes || ''})
     `;
     revalidatePath('/');
     return { success: true };
@@ -399,6 +405,21 @@ export async function removeShownProperty(clientId: number, propertyId: number) 
   }
 }
 
+export async function deleteShownPropertyEntry(id: number) {
+  await ensureDb();
+  try {
+    await sql`
+      DELETE FROM shown_properties 
+      WHERE id = ${id}
+    `;
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete shown property entry:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
 export async function updateShownPropertyResult(clientId: number, propertyId: number, result: string) {
   await ensureDb();
   try {
@@ -411,6 +432,54 @@ export async function updateShownPropertyResult(clientId: number, propertyId: nu
     return { success: true };
   } catch (error) {
     console.error('Failed to update shown property result:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function updateShownPropertyResultById(id: number, result: string) {
+  await ensureDb();
+  try {
+    await sql`
+      UPDATE shown_properties 
+      SET result = ${result}
+      WHERE id = ${id}
+    `;
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update shown property result by ID:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function updateShownPropertyNotesById(id: number, notes: string) {
+  await ensureDb();
+  try {
+    await sql`
+      UPDATE shown_properties 
+      SET notes = ${notes} 
+      WHERE id = ${id}
+    `;
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update shown property notes:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function updateShownPropertyTitleById(id: number, title: string) {
+  await ensureDb();
+  try {
+    await sql`
+      UPDATE shown_properties 
+      SET custom_title = ${title} 
+      WHERE id = ${id}
+    `;
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update shown property title:', error);
     return { success: false, error: String(error) };
   }
 }

@@ -63,13 +63,47 @@ export async function initDb() {
       CREATE TABLE IF NOT EXISTS shown_properties (
         id SERIAL PRIMARY KEY,
         client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-        property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+        property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+        custom_title TEXT,
         shown_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         notes TEXT,
-        result VARCHAR(50) DEFAULT 'pending',
-        UNIQUE(client_id, property_id)
+        result VARCHAR(50) DEFAULT 'pending'
       )
     `;
+
+    // Self-healing database migrations for existing schemas:
+    // A. Add custom_title column if it doesn't exist
+    await sql`
+      ALTER TABLE shown_properties 
+      ADD COLUMN IF NOT EXISTS custom_title TEXT
+    `;
+
+    // B. Drop NOT NULL constraint on property_id
+    await sql`
+      ALTER TABLE shown_properties 
+      ALTER COLUMN property_id DROP NOT NULL
+    `;
+
+    // C. Drop the UNIQUE constraint on (client_id, property_id) if it exists
+    await sql`
+      ALTER TABLE shown_properties 
+      DROP CONSTRAINT IF EXISTS shown_properties_client_id_property_id_key
+    `;
+
+    // D. Drop and recreate property_id foreign key constraint with ON DELETE SET NULL
+    try {
+      await sql`
+        ALTER TABLE shown_properties 
+        DROP CONSTRAINT IF EXISTS shown_properties_property_id_fkey
+      `;
+      await sql`
+        ALTER TABLE shown_properties 
+        ADD CONSTRAINT shown_properties_property_id_fkey 
+        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE SET NULL
+      `;
+    } catch (fkErr) {
+      console.warn('Could not alter foreign key for shown_properties:', fkErr);
+    }
 
     isInitialized = true;
     console.log('Database initialized successfully with self-healing tables.');

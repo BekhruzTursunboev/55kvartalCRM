@@ -13,7 +13,8 @@ import {
   getClients, updatePropertyStatus, updateClientStatus, updateClientNotes,
   deleteProperty, deleteClient, getMatchesForClient, 
   getMatchesForProperty, MatchResult, seedDatabase, updateProperty, updateClient,
-  ShownProperty, getShownProperties, addShownProperty, removeShownProperty, updateShownPropertyResult
+  ShownProperty, getShownProperties, addShownProperty, removeShownProperty, updateShownPropertyResult,
+  deleteShownPropertyEntry, updateShownPropertyResultById, updateShownPropertyNotesById, updateShownPropertyTitleById
 } from './actions';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -224,6 +225,43 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
   const [copiedLang, setCopiedLang] = useState<'uz' | 'ru' | null>(null);
   
   const [notesTimeout, setNotesTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Shown Properties checklist states & handlers
+  const [customPropTitle, setCustomPropTitle] = useState('');
+  const [spNotesTimeout, setSpNotesTimeout] = useState<Record<number, NodeJS.Timeout>>({});
+  const [spTitleTimeout, setSpTitleTimeout] = useState<Record<number, NodeJS.Timeout>>({});
+
+  const handleSpNotesChange = (entryId: number, newNotes: string) => {
+    setShownProperties(prev => prev.map(sp => sp.id === entryId ? { ...sp, notes: newNotes } : sp));
+    if (spNotesTimeout[entryId]) {
+      clearTimeout(spNotesTimeout[entryId]);
+    }
+    const timeout = setTimeout(async () => {
+      await updateShownPropertyNotesById(entryId, newNotes);
+      setSpNotesTimeout(prev => {
+        const next = { ...prev };
+        delete next[entryId];
+        return next;
+      });
+    }, 800);
+    setSpNotesTimeout(prev => ({ ...prev, [entryId]: timeout }));
+  };
+
+  const handleSpTitleChange = (entryId: number, newTitle: string) => {
+    setShownProperties(prev => prev.map(sp => sp.id === entryId ? { ...sp, custom_title: newTitle } : sp));
+    if (spTitleTimeout[entryId]) {
+      clearTimeout(spTitleTimeout[entryId]);
+    }
+    const timeout = setTimeout(async () => {
+      await updateShownPropertyTitleById(entryId, newTitle);
+      setSpTitleTimeout(prev => {
+        const next = { ...prev };
+        delete next[entryId];
+        return next;
+      });
+    }, 800);
+    setSpTitleTimeout(prev => ({ ...prev, [entryId]: timeout }));
+  };
 
   const refreshData = async () => {
     setLoading(true);
@@ -1346,41 +1384,70 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
             {/* SHOWN PROPERTIES — Ko'rsatilgan ob'ektlar */}
             <div>
-              <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+              <div className="flex items-center justify-between mb-3.5 border-b border-slate-100 pb-2">
                 <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5" /> Ko'rsatilgan ob'ektlar
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold bg-blue-500 text-white px-2.5 py-0.5 rounded-full shadow-xs">{shownProperties.length}</span>
+                  <span className="text-[10px] font-extrabold bg-[#4D6256] text-white px-2.5 py-0.5 rounded-full shadow-xs">{shownProperties.length}</span>
                   <button 
                     type="button" 
                     onClick={() => setShowAddShownProp(!showAddShownProp)} 
-                    className="p-1 hover:bg-[#4D6256]/10 rounded-lg text-[#4D6256] transition-colors cursor-pointer"
-                    title="Ob'ekt qo'shish"
+                    className={`p-1 hover:bg-[#4D6256]/10 rounded-lg transition-colors cursor-pointer ${showAddShownProp ? 'text-blue-600 bg-blue-50' : 'text-[#4D6256]'}`}
+                    title="Mavjud ob'ektlar ro'yxatidan qo'shish"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Building2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* Quick Add from matched properties */}
+              {/* Form to add custom/freeform checklist objects */}
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!customPropTitle.trim()) return;
+                  await addShownProperty(selectedClient.id!, null, customPropTitle.trim());
+                  setCustomPropTitle('');
+                  const shown = await getShownProperties(selectedClient.id!);
+                  setShownProperties(shown);
+                }}
+                className="flex items-center gap-2 mb-3.5"
+              >
+                <input 
+                  type="text" 
+                  placeholder="Yangi ob'ekt yozing (masalan: Eddy)..." 
+                  value={customPropTitle}
+                  onChange={e => setCustomPropTitle(e.target.value)}
+                  className="flex-1 text-xs font-semibold p-2.5 border border-[#4D6256]/20 focus:border-[#4D6256] rounded-xl outline-none bg-slate-50 focus:bg-white text-[#1C2421] placeholder-slate-400 transition-all shadow-xs"
+                />
+                <button 
+                  type="submit"
+                  className="px-4 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Qo'shish
+                </button>
+              </form>
+
+              {/* Quick Add from database properties list */}
               {showAddShownProp && (
-                <div className="mb-3 bg-blue-50 border border-blue-200 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-blue-700 mb-2">Mos ob'ektlardan tanlang:</p>
-                  <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
+                <div className="mb-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl p-3 shadow-xs animate-fade-in">
+                  <p className="text-[10px] font-bold text-blue-800 mb-2 flex items-center gap-1">
+                    <Building2 className="w-3 h-3" /> Bazadagi mos ob'ektlardan birini tanlang:
+                  </p>
+                  <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
                     {properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).length === 0 ? (
-                      <p className="text-[10px] text-slate-400 text-center py-2">Barcha ob'ektlar allaqachon qo'shilgan</p>
+                      <p className="text-[10px] text-slate-400 text-center py-3">Barcha mos ob'ektlar allaqachon qo'shilgan</p>
                     ) : (
                       properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).slice(0, 15).map(prop => (
                         <button
                           key={prop.id}
                           type="button"
                           onClick={async () => {
-                            await addShownProperty(selectedClient.id!, prop.id!);
+                            await addShownProperty(selectedClient.id!, prop.id!, null);
                             const shown = await getShownProperties(selectedClient.id!);
                             setShownProperties(shown);
                           }}
-                          className="flex items-center justify-between text-left px-3 py-2 bg-white border border-blue-100 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group"
+                          className="flex items-center justify-between text-left px-3 py-2 bg-white border border-blue-50 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group shadow-xs"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-[11px] font-bold text-[#1C2421] truncate">{prop.title}</div>
@@ -1395,66 +1462,120 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               )}
 
               {shownProperties.length === 0 ? (
-                <div className="text-xs text-slate-400 py-6 text-center border-2 border-dashed border-blue-200/50 rounded-2xl font-semibold">
-                  <Eye className="w-8 h-8 mx-auto mb-2 text-slate-200" />
-                  Hali ob'ekt ko'rsatilmagan
+                <div className="text-xs text-slate-400 py-8 text-center border-2 border-dashed border-slate-200/60 rounded-2xl font-bold bg-slate-50/30">
+                  <Eye className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  Ko'rsatilgan ob'ektlar ro'yxati bo'sh
                 </div>
               ) : (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-3">
                   {shownProperties.map((sp, i) => (
-                    <div key={sp.id || i} className="border border-[#4D6256]/15 rounded-xl p-3.5 bg-white shadow-xs relative group">
-                      <div className="absolute top-2 left-2 text-[9px] font-black text-white bg-blue-500 w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
-                        {i + 1}
-                      </div>
+                    <div key={sp.id || i} className="border border-slate-200/80 hover:border-slate-300 rounded-2xl p-4 bg-white shadow-xs relative group transition-all flex flex-col gap-3">
+                      {/* Trash Delete button */}
                       <button 
                         type="button"
                         onClick={async () => {
-                          await removeShownProperty(selectedClient.id!, sp.property_id);
-                          const shown = await getShownProperties(selectedClient.id!);
-                          setShownProperties(shown);
+                          if (sp.id) {
+                            await deleteShownPropertyEntry(sp.id);
+                            const shown = await getShownProperties(selectedClient.id!);
+                            setShownProperties(shown);
+                          }
                         }}
-                        className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-all cursor-pointer"
-                        title="Olib tashlash"
+                        className="absolute top-3.5 right-3.5 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-all cursor-pointer"
+                        title="Ro'yxatdan olib tashlash"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                      {sp.property && (
-                        <div className="pl-6">
-                          <div className="font-bold text-xs text-[#1C2421] truncate pr-6">{sp.property.title}</div>
-                          <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {sp.property.rayon}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1.5">
-                            <span className="font-mono font-black text-xs text-[#1C2421]">{formatPrice(sp.property.price)}</span>
-                            <span className="text-[10px] text-slate-400 font-semibold">{sp.property.area}m²</span>
-                            {sp.property.rooms && <span className="text-[10px] text-slate-400 font-semibold">{sp.property.rooms}x</span>}
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-2">
-                            <select
-                              value={sp.result || 'pending'}
-                              onChange={async (e) => {
-                                await updateShownPropertyResult(selectedClient.id!, sp.property_id, e.target.value);
-                                const shown = await getShownProperties(selectedClient.id!);
-                                setShownProperties(shown);
-                              }}
-                              className={`text-[10px] font-bold border rounded-lg px-2 py-1 outline-none cursor-pointer ${
-                                sp.result === 'interested' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' :
-                                sp.result === 'rejected' ? 'bg-red-50 border-red-300 text-red-700' :
-                                'bg-slate-50 border-slate-200 text-slate-600'
-                              }`}
-                            >
-                              <option value="pending">⏳ Kutilmoqda</option>
-                              <option value="interested">✅ Qiziqdi</option>
-                              <option value="rejected">❌ Rad etdi</option>
-                            </select>
-                            {sp.shown_date && (
-                              <span className="text-[9px] text-slate-300 font-semibold">
-                                {new Date(sp.shown_date).toLocaleDateString('ru-RU')}
-                              </span>
-                            )}
-                          </div>
+
+                      {/* Header containing type indicator and editable title */}
+                      <div className="flex items-start gap-2.5">
+                        <div className="text-[10px] font-black text-white bg-slate-700 w-5 h-5 rounded-full flex items-center justify-center shadow-xs shrink-0 mt-0.5">
+                          {i + 1}
                         </div>
-                      )}
+                        
+                        <div className="flex-1 min-w-0 pr-6">
+                          {sp.property ? (
+                            // Database-linked Property View
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProperty(sp.property!)}
+                                  className="font-extrabold text-xs text-[#1C2421] text-left truncate hover:underline hover:text-slate-900 cursor-pointer"
+                                >
+                                  {sp.property.title}
+                                </button>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3" /> {sp.property.rayon}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <span className="font-mono font-black text-xs text-[#1C2421]">{formatPrice(sp.property.price)}</span>
+                                <span className="text-[10px] text-slate-400 font-semibold">{sp.property.area}m²</span>
+                                {sp.property.rooms && <span className="text-[10px] text-slate-400 font-semibold">{sp.property.rooms} xona</span>}
+                              </div>
+                            </div>
+                          ) : (
+                            // Freeform Custom Checklist Item View
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                <Tag className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                                <input
+                                  type="text"
+                                  value={sp.custom_title || ''}
+                                  onChange={(e) => handleSpTitleChange(sp.id!, e.target.value)}
+                                  className="w-full text-xs font-extrabold border-b border-transparent hover:border-slate-200 focus:border-slate-800 outline-none py-0.5 text-[#1C2421] bg-transparent focus:bg-white px-1.5 rounded-lg transition-all"
+                                  placeholder="Eddy (Obyekt nomi)..."
+                                />
+                              </div>
+                              <span className="text-[8px] font-black text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded-md mt-1 w-fit uppercase tracking-widest leading-none">
+                                Qo'lda yozilgan obyekt
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Checklist entry notes/comments */}
+                      <div className="border-t border-slate-100/80 pt-2.5">
+                        <label className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">Muzokara / Pokaz Qaydlari</label>
+                        <input
+                          type="text"
+                          value={sp.notes || ''}
+                          onChange={(e) => handleSpNotesChange(sp.id!, e.target.value)}
+                          placeholder="Mijoz munosabati yoki qayd yozing (auto-save)..."
+                          className="w-full text-[10px] font-semibold p-2 border border-slate-100 rounded-xl outline-none bg-slate-50/60 focus:bg-white focus:border-slate-200 text-[#1C2421] placeholder-slate-400 transition-all"
+                        />
+                      </div>
+
+                      {/* Status Dropdown selector & creation date */}
+                      <div className="flex items-center justify-between border-t border-slate-100/80 pt-2.5">
+                        <select
+                          value={sp.result || 'pending'}
+                          onChange={async (e) => {
+                            if (sp.id) {
+                              await updateShownPropertyResultById(sp.id, e.target.value);
+                              const shown = await getShownProperties(selectedClient.id!);
+                              setShownProperties(shown);
+                            }
+                          }}
+                          className={`text-[10px] font-bold border rounded-lg px-2.5 py-1 outline-none cursor-pointer transition-all shadow-xs ${
+                            sp.result === 'interested' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                            sp.result === 'rejected' ? 'bg-red-50 border-red-200 text-red-700' :
+                            'bg-slate-50 border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          <option value="pending">⏳ Kutilmoqda</option>
+                          <option value="interested">✅ Qiziqdi</option>
+                          <option value="rejected">❌ Rad etdi</option>
+                        </select>
+
+                        {sp.shown_date && (
+                          <div className="text-[9px] text-slate-400 font-semibold flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-slate-300" /> {new Date(sp.shown_date).toLocaleDateString('ru-RU')}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
