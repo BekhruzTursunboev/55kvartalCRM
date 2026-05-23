@@ -6,7 +6,8 @@ import {
   Phone, X, Check, RefreshCw, Filter, ArrowRight,
   BarChart3, Megaphone, Copy, Edit3, Database, 
   ExternalLink, ChevronDown, Sparkles, TrendingUp, DollarSign, Tag, Info,
-  Menu, Send, Download, Printer, Eye, Trash2, CheckCircle, XCircle, Clock
+  Menu, Send, Download, Printer, Eye, Trash2, CheckCircle, XCircle, Clock,
+  UserPlus, Handshake, Archive
 } from 'lucide-react';
 import { 
   Property, Client, addProperty, addClient, getProperties, 
@@ -879,12 +880,12 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             <DragDropContext onDragEnd={onDragEnd}>
               <div className="h-full flex overflow-x-auto p-6 gap-5 scrollbar-thin">
                 {[
-                  { id: 'active', title: t.statusNew || 'Yangi', items: pipelineNew, borderStyle: 'border-t-emerald-500', headerBg: 'bg-emerald-50 border-emerald-200', headerText: 'text-emerald-700', badgeBg: 'bg-emerald-500', emoji: '🆕' },
-                  { id: 'padbor', title: 'Padbor', items: pipelinePadbor, borderStyle: 'border-t-blue-500', headerBg: 'bg-blue-50 border-blue-200', headerText: 'text-blue-700', badgeBg: 'bg-blue-500', emoji: '🔍' },
-                  { id: 'pokaz', title: 'Pokaz', items: pipelinePokaz, borderStyle: 'border-t-purple-500', headerBg: 'bg-purple-50 border-purple-200', headerText: 'text-purple-700', badgeBg: 'bg-purple-500', emoji: '👁️' },
-                  { id: 'negotiating', title: t.statusNegotiating || 'Muzokara', items: pipelineNegotiating, borderStyle: 'border-t-amber-500', headerBg: 'bg-amber-50 border-amber-200', headerText: 'text-amber-700', badgeBg: 'bg-amber-500', emoji: '🤝' },
-                  { id: 'completed', title: t.statusClosed || 'Bitim', items: pipelineClosed, borderStyle: 'border-t-green-600', headerBg: 'bg-green-50 border-green-200', headerText: 'text-green-700', badgeBg: 'bg-green-600', emoji: '✅' },
-                  { id: 'archived', title: t.statusArchived || 'Arxiv', items: pipelineArchived, borderStyle: 'border-t-slate-400', headerBg: 'bg-slate-50 border-slate-200', headerText: 'text-slate-500', badgeBg: 'bg-slate-400', emoji: '📦' },
+                  { id: 'active', title: t.statusNew || 'Yangi', items: pipelineNew, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <UserPlus className="w-3.5 h-3.5 text-[#4D6256]" /> },
+                  { id: 'padbor', title: 'Padbor', items: pipelinePadbor, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <Search className="w-3.5 h-3.5 text-[#4D6256]" /> },
+                  { id: 'pokaz', title: 'Pokaz', items: pipelinePokaz, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <Eye className="w-3.5 h-3.5 text-[#4D6256]" /> },
+                  { id: 'negotiating', title: t.statusNegotiating || 'Muzokara', items: pipelineNegotiating, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <Handshake className="w-3.5 h-3.5 text-[#4D6256]" /> },
+                  { id: 'completed', title: t.statusClosed || 'Bitim', items: pipelineClosed, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <CheckCircle className="w-3.5 h-3.5 text-[#4D6256]" /> },
+                  { id: 'archived', title: t.statusArchived || 'Arxiv', items: pipelineArchived, borderStyle: 'border-t-[#4D6256]', headerBg: 'bg-[#4D6256]/5 border-[#4D6256]/15', headerText: 'text-[#1C2421]', badgeBg: 'bg-[#4D6256]', icon: <Archive className="w-3.5 h-3.5 text-[#4D6256]" /> },
                 ].map(column => (
                   <Droppable droppableId={column.id} key={column.id}>
                     {(provided, snapshot) => (
@@ -895,7 +896,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                       >
                         <div className={`flex items-center justify-between mb-3 px-3 py-2.5 rounded-xl border ${column.headerBg}`}>
                           <h3 className={`text-xs font-extrabold uppercase tracking-widest flex items-center gap-1.5 ${column.headerText}`}>
-                            <span>{column.emoji}</span> {column.title}
+                            {column.icon} {column.title}
                           </h3>
                           <span className={`text-[10px] font-extrabold text-white px-2.5 py-0.5 rounded-full ${column.badgeBg} shadow-sm`}>{column.items.length}</span>
                         </div>
@@ -1291,12 +1292,12 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
               <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 block">Pipeline Bosqichi</label>
               <div className="flex items-center gap-1">
                 {[
-                  { id: 'active', label: 'Yangi', emoji: '🆕', color: 'bg-emerald-500' },
-                  { id: 'padbor', label: 'Padbor', emoji: '🔍', color: 'bg-blue-500' },
-                  { id: 'pokaz', label: 'Pokaz', emoji: '👁️', color: 'bg-purple-500' },
-                  { id: 'negotiating', label: 'Muzokara', emoji: '🤝', color: 'bg-amber-500' },
-                  { id: 'completed', label: 'Bitim', emoji: '✅', color: 'bg-green-600' },
-                  { id: 'archived', label: 'Arxiv', emoji: '📦', color: 'bg-slate-400' },
+                  { id: 'active', label: 'Yangi', icon: <UserPlus className="w-3.5 h-3.5" /> },
+                  { id: 'padbor', label: 'Padbor', icon: <Search className="w-3.5 h-3.5" /> },
+                  { id: 'pokaz', label: 'Pokaz', icon: <Eye className="w-3.5 h-3.5" /> },
+                  { id: 'negotiating', label: 'Muzokara', icon: <Handshake className="w-3.5 h-3.5" /> },
+                  { id: 'completed', label: 'Bitim', icon: <CheckCircle className="w-3.5 h-3.5" /> },
+                  { id: 'archived', label: 'Arxiv', icon: <Archive className="w-3.5 h-3.5" /> },
                 ].map((step, i, arr) => {
                   const currentStatus = selectedClient.status || 'active';
                   const statusOrder = ['active', 'padbor', 'pokaz', 'negotiating', 'completed', 'archived'];
@@ -1309,14 +1310,14 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                       <button
                         type="button"
                         onClick={() => handleClientStatusChange(selectedClient.id!, step.id)}
-                        className={`flex flex-col items-center gap-1 flex-1 py-2 rounded-lg transition-all cursor-pointer ${
-                          isActive ? `${step.color} text-white shadow-md scale-105` :
-                          isPast ? 'bg-slate-200 text-slate-600' :
-                          'bg-white border border-slate-100 text-slate-400 hover:border-slate-300'
+                        className={`flex flex-col items-center gap-1 flex-1 py-2.5 rounded-xl transition-all cursor-pointer ${
+                          isActive ? 'bg-[#4D6256] text-white shadow-sm scale-105 font-bold' :
+                          isPast ? 'bg-[#4D6256]/10 text-[#4D6256] hover:bg-[#4D6256]/15' :
+                          'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600'
                         }`}
                         title={step.label}
                       >
-                        <span className="text-sm">{step.emoji}</span>
+                        <span className="shrink-0">{step.icon}</span>
                         <span className="text-[8px] font-extrabold uppercase tracking-wider leading-none">{step.label}</span>
                       </button>
                       {i < arr.length - 1 && (
