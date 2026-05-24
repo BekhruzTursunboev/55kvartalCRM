@@ -1,0 +1,23 @@
+{
+  "name": "55kvartal CRM",
+  "short_name": "55kvartal",
+  "description": "Toshkent shahridagi professional ko'chmas mulk va mijozlarni boshqarish tizimi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9F8F6",
+  "theme_color": "#1C2421",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
