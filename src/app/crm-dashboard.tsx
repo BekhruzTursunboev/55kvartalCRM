@@ -210,6 +210,22 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
     return `$${formatNumber(price)}`;
   };
 
+  const formatCleanPhone = (phone: string): string => {
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (digits.length === 9) {
+      return `998${digits}`;
+    }
+    return digits;
+  };
+
+  const getTelegramLink = (phone: string): string => {
+    return `tg://resolve?phone=${formatCleanPhone(phone)}`;
+  };
+
+  const getWhatsAppLink = (phone: string): string => {
+    return `https://wa.me/${formatCleanPhone(phone)}`;
+  };
+
   // Editing Modals
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -927,11 +943,14 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                                      </span>
                                   </div>
                                   <div className="font-black text-[15px] mb-1.5 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
-                                  <div className="flex items-center gap-2 mb-2.5">
-                                    <a href={`tel:${client.phone}`} onClick={(e) => e.stopPropagation()} className="text-[11px] text-slate-500 flex items-center gap-1 font-semibold hover:text-[#4D6256] transition-colors">
+                                  <div className="flex items-center gap-1.5 mb-2.5">
+                                    <a href={`tel:${client.phone}`} onClick={(e) => e.stopPropagation()} className="text-[11px] text-slate-500 flex items-center gap-1 font-semibold hover:text-[#4D6256] transition-colors mr-1">
                                       <Phone className="w-3 h-3" /> {client.phone}
                                     </a>
-                                    <a href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded hover:bg-green-100 transition-colors" title="WhatsApp">
+                                    <a href={getTelegramLink(client.phone)} onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded hover:bg-sky-105 transition-colors animate-pulse-subtle" title="Telegram">
+                                      TG
+                                    </a>
+                                    <a href={getWhatsAppLink(client.phone)} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded hover:bg-green-100 transition-colors" title="WhatsApp">
                                       WA
                                     </a>
                                   </div>
@@ -1276,7 +1295,10 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 <a href={`tel:${selectedClient.phone}`} className="text-xs font-bold text-[#4D6256] hover:text-[#1C2421] flex items-center gap-1.5 px-2.5 py-1.5 bg-[#4D6256]/5 rounded-lg border border-[#4D6256]/15 font-mono transition-colors">
                   <Phone className="w-3.5 h-3.5" /> {selectedClient.phone}
                 </a>
-                <a href={`https://wa.me/${selectedClient.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                <a href={getTelegramLink(selectedClient.phone)} className="text-xs font-bold text-sky-700 flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 rounded-lg border border-sky-200 hover:bg-sky-100 transition-colors shadow-xs">
+                  <Send className="w-3.5 h-3.5" /> Telegram
+                </a>
+                <a href={getWhatsAppLink(selectedClient.phone)} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors shadow-xs">
                   <Send className="w-3.5 h-3.5" /> WhatsApp
                 </a>
               </div>
@@ -1718,9 +1740,17 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
             <div className="border border-[#4D6256]/15 rounded-2xl p-5 text-xs shadow-xs bg-white">
                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Owner Contact</span>
                <div className="font-bold text-[#1C2421] mb-1.5">{selectedProperty.contact_name || 'No name provided'}</div>
-               <a href={`tel:${selectedProperty.contact_phone}`} className="text-xs font-bold text-[#1C2421] hover:text-black flex items-center gap-1.5 w-fit px-2.5 py-1 bg-[#4D6256]/5 border border-[#4D6256]/15 rounded-lg font-mono">
-                <Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.contact_phone}
-              </a>
+               <div className="flex items-center gap-2 flex-wrap">
+                 <a href={`tel:${selectedProperty.contact_phone}`} className="text-xs font-bold text-[#1C2421] hover:text-black flex items-center gap-1.5 px-2.5 py-1.5 bg-[#4D6256]/5 border border-[#4D6256]/15 rounded-lg font-mono">
+                   <Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedProperty.contact_phone}
+                 </a>
+                 <a href={getTelegramLink(selectedProperty.contact_phone)} className="text-xs font-bold text-sky-700 flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 rounded-lg border border-sky-200 hover:bg-sky-100 transition-colors">
+                   <Send className="w-3.5 h-3.5" /> Telegram
+                 </a>
+                 <a href={getWhatsAppLink(selectedProperty.contact_phone)} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                   <Send className="w-3.5 h-3.5" /> WhatsApp
+                 </a>
+               </div>
             </div>
 
             {/* Matches with detailed factors dropdown */}
