@@ -222,10 +222,6 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
     return `tg://resolve?phone=${formatCleanPhone(phone)}`;
   };
 
-  const getWhatsAppLink = (phone: string): string => {
-    return `https://wa.me/${formatCleanPhone(phone)}`;
-  };
-
   // Editing Modals
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
@@ -944,14 +940,11 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                                   </div>
                                   <div className="font-black text-[15px] mb-1.5 text-[#1C2421] tracking-tight leading-snug">{client.name}</div>
                                   <div className="flex items-center gap-1.5 mb-2.5">
-                                    <a href={`tel:${client.phone}`} onClick={(e) => e.stopPropagation()} className="text-[11px] text-slate-500 flex items-center gap-1 font-semibold hover:text-[#4D6256] transition-colors mr-1">
+                                    <a href={`tel:${client.phone}`} onClick={(e) => e.stopPropagation()} className="text-[11px] text-slate-500 flex items-center gap-1 font-semibold hover:text-[#4D6256] transition-colors mr-1.5">
                                       <Phone className="w-3 h-3" /> {client.phone}
                                     </a>
-                                    <a href={getTelegramLink(client.phone)} onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded hover:bg-sky-105 transition-colors animate-pulse-subtle" title="Telegram">
+                                    <a href={getTelegramLink(client.phone)} onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded hover:bg-sky-105 transition-colors animate-pulse-subtle" title="Telegram">
                                       TG
-                                    </a>
-                                    <a href={getWhatsAppLink(client.phone)} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded hover:bg-green-100 transition-colors" title="WhatsApp">
-                                      WA
                                     </a>
                                   </div>
                                   <div className="text-sm font-black text-[#4D6256] bg-[#4D6256]/5 border border-[#4D6256]/15 px-3 py-2 rounded-lg font-mono w-full text-center">
@@ -1297,9 +1290,6 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                 </a>
                 <a href={getTelegramLink(selectedClient.phone)} className="text-xs font-bold text-sky-700 flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 rounded-lg border border-sky-200 hover:bg-sky-100 transition-colors shadow-xs">
                   <Send className="w-3.5 h-3.5" /> Telegram
-                </a>
-                <a href={getWhatsAppLink(selectedClient.phone)} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors shadow-xs">
-                  <Send className="w-3.5 h-3.5" /> WhatsApp
                 </a>
               </div>
               {selectedClient.created_at && (
@@ -1746,9 +1736,6 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                  </a>
                  <a href={getTelegramLink(selectedProperty.contact_phone)} className="text-xs font-bold text-sky-700 flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 rounded-lg border border-sky-200 hover:bg-sky-100 transition-colors">
                    <Send className="w-3.5 h-3.5" /> Telegram
-                 </a>
-                 <a href={getWhatsAppLink(selectedProperty.contact_phone)} target="_blank" rel="noopener" className="text-xs font-bold text-green-700 flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
-                   <Send className="w-3.5 h-3.5" /> WhatsApp
                  </a>
                </div>
             </div>
