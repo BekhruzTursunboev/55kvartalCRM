@@ -1397,59 +1397,69 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
             {/* SHOWN PROPERTIES — Ko'rsatilgan ob'ektlar */}
             <div>
-              <div className="flex items-center justify-between mb-3.5 border-b border-slate-100 pb-2">
-                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5" /> Ko'rsatilgan ob'ektlar
+              <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-150">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-slate-400" /> Ko'rsatilgan ob'ektlar
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold bg-[#4D6256] text-white px-2.5 py-0.5 rounded-full shadow-xs">{shownProperties.length}</span>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowAddShownProp(!showAddShownProp)} 
-                    className={`p-1 hover:bg-[#4D6256]/10 rounded-lg transition-colors cursor-pointer ${showAddShownProp ? 'text-blue-600 bg-blue-50' : 'text-[#4D6256]'}`}
-                    title="Mavjud ob'ektlar ro'yxatidan qo'shish"
-                  >
-                    <Building2 className="w-4 h-4" />
-                  </button>
-                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddShownProp(!showAddShownProp)} 
+                  className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer border ${
+                    showAddShownProp 
+                      ? 'bg-[#1C2421] border-[#1C2421] text-white shadow-xs' 
+                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-350'
+                  }`}
+                >
+                  <Plus className="w-3 h-3" /> Bazadan tanlash
+                </button>
               </div>
 
               {/* Form to add custom/freeform checklist objects */}
-              <form 
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!customPropTitle.trim()) return;
-                  await addShownProperty(selectedClient.id!, null, customPropTitle.trim());
-                  setCustomPropTitle('');
-                  const shown = await getShownProperties(selectedClient.id!);
-                  setShownProperties(shown);
-                }}
-                className="flex items-center gap-2 mb-3.5"
-              >
+              <div className="relative flex items-center mb-3">
+                <Plus className="w-3.5 h-3.5 absolute left-3 text-slate-400 pointer-events-none" />
                 <input 
                   type="text" 
-                  placeholder="Yangi ob'ekt yozing (masalan: Eddy)..." 
+                  placeholder="Ob'ekt qo'shish (yozib Enter tugmasini bosing)..." 
                   value={customPropTitle}
                   onChange={e => setCustomPropTitle(e.target.value)}
-                  className="flex-1 text-xs font-semibold p-2.5 border border-[#4D6256]/20 focus:border-[#4D6256] rounded-xl outline-none bg-slate-50 focus:bg-white text-[#1C2421] placeholder-slate-400 transition-all shadow-xs"
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!customPropTitle.trim()) return;
+                      await addShownProperty(selectedClient.id!, null, customPropTitle.trim());
+                      setCustomPropTitle('');
+                      const shown = await getShownProperties(selectedClient.id!);
+                      setShownProperties(shown);
+                    }
+                  }}
+                  className="w-full pl-9 pr-22 py-2 text-xs border border-slate-200 focus:border-slate-400 rounded-xl bg-slate-50 focus:bg-white text-[#1C2421] placeholder-slate-400 outline-none transition-all"
                 />
-                <button 
-                  type="submit"
-                  className="px-4 py-2.5 bg-[#1C2421] hover:bg-[#2A3530] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs shrink-0 flex items-center gap-1 active:scale-95 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Qo'shish
-                </button>
-              </form>
+                {customPropTitle.trim() && (
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      if (!customPropTitle.trim()) return;
+                      await addShownProperty(selectedClient.id!, null, customPropTitle.trim());
+                      setCustomPropTitle('');
+                      const shown = await getShownProperties(selectedClient.id!);
+                      setShownProperties(shown);
+                    }}
+                    className="absolute right-2 px-2.5 py-1 bg-[#1C2421] hover:bg-[#2A3530] text-white text-[10px] font-black uppercase rounded-lg transition-colors cursor-pointer"
+                  >
+                    Qo'shish
+                  </button>
+                )}
+              </div>
 
               {/* Quick Add from database properties list */}
               {showAddShownProp && (
-                <div className="mb-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl p-3 shadow-xs animate-fade-in">
-                  <p className="text-[10px] font-bold text-blue-800 mb-2 flex items-center gap-1">
-                    <Building2 className="w-3 h-3" /> Bazadagi mos ob'ektlardan birini tanlang:
+                <div className="mb-3.5 bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm animate-fade-in">
+                  <p className="text-[10px] font-extrabold text-slate-500 mb-2 flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-slate-400" /> Bazadagi mos ob'ektlardan birini tanlang:
                   </p>
-                  <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
+                  <div className="flex flex-col gap-1 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
                     {properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).length === 0 ? (
-                      <p className="text-[10px] text-slate-400 text-center py-3">Barcha mos ob'ektlar allaqachon qo'shilgan</p>
+                      <p className="text-[10px] text-slate-400 text-center py-4 font-semibold">Barcha mos ob'ektlar allaqachon qo'shilgan</p>
                     ) : (
                       properties.filter(p => p.status === 'active' && !shownProperties.find(sp => sp.property_id === p.id)).slice(0, 15).map(prop => (
                         <button
@@ -1460,13 +1470,13 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                             const shown = await getShownProperties(selectedClient.id!);
                             setShownProperties(shown);
                           }}
-                          className="flex items-center justify-between text-left px-3 py-2 bg-white border border-blue-50 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer group shadow-xs"
+                          className="flex items-center justify-between text-left px-2.5 py-1.5 bg-slate-50/50 hover:bg-slate-50 rounded-lg transition-all cursor-pointer group"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-bold text-[#1C2421] truncate">{prop.title}</div>
-                            <div className="text-[10px] text-slate-400 font-semibold">{prop.rayon} • {formatPrice(prop.price)} • {prop.area}m²</div>
+                            <div className="text-[10.5px] font-extrabold text-[#1C2421] truncate">{prop.title}</div>
+                            <div className="text-[9px] text-slate-400 font-bold">{prop.rayon} • {formatPrice(prop.price)} • {prop.area}m²</div>
                           </div>
-                          <Plus className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600 shrink-0 ml-2" />
+                          <Plus className="w-3 h-3 text-slate-400 group-hover:text-black shrink-0 ml-2" />
                         </button>
                       ))
                     )}
@@ -1476,7 +1486,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
 
               {shownProperties.length === 0 ? (
                 <div className="text-xs text-slate-400 py-8 text-center border border-dashed border-slate-200 rounded-2xl font-bold bg-slate-50/30">
-                  <Eye className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <Eye className="w-8 h-8 mx-auto mb-2 text-slate-350" />
                   Ko'rsatilgan ob'ektlar ro'yxati bo'sh
                 </div>
               ) : (
@@ -1484,82 +1494,84 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                   {shownProperties.map((sp, i) => (
                     <div 
                       key={sp.id || i} 
-                      className="flex items-center gap-2.5 py-2.5 border-b border-slate-100 hover:bg-slate-50/50 transition-all group relative px-1"
+                      className="flex items-start gap-2.5 py-2.5 border-b border-slate-100 hover:bg-slate-50/40 transition-all group relative px-1"
                     >
-                      {/* Left: Number & Status Select Badge */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] font-black text-slate-400 w-3 text-right">
-                          {i + 1}
-                        </span>
-                        
-                        <select
-                          value={sp.result || 'pending'}
-                          onChange={async (e) => {
-                            if (sp.id) {
-                              await updateShownPropertyResultById(sp.id, e.target.value);
-                              const shown = await getShownProperties(selectedClient.id!);
-                              setShownProperties(shown);
-                            }
-                          }}
-                          className={`text-[9px] font-extrabold border rounded-md px-1.5 py-0.5 outline-none cursor-pointer transition-all shadow-xs ${
-                            sp.result === 'interested' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                            sp.result === 'rejected' ? 'bg-red-50 border-red-200 text-red-700' :
-                            'bg-slate-50 border-slate-200 text-slate-500'
-                          }`}
-                        >
-                          <option value="pending">⏳ Kutilmoqda</option>
-                          <option value="interested">✅ Qiziqdi</option>
-                          <option value="rejected">❌ Rad etdi</option>
-                        </select>
-                      </div>
+                      {/* Left: Interactive Status Indicator (Cycles through status on click) */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (sp.id) {
+                            const nextResult = 
+                              sp.result === 'pending' ? 'interested' :
+                              sp.result === 'interested' ? 'rejected' : 'pending';
+                            await updateShownPropertyResultById(sp.id, nextResult);
+                            const shown = await getShownProperties(selectedClient.id!);
+                            setShownProperties(shown);
+                          }
+                        }}
+                        className="mt-1 shrink-0 flex items-center justify-center w-4 h-4 rounded-full border border-slate-200 bg-white hover:border-slate-400 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xs"
+                        title={`Status: ${
+                          sp.result === 'interested' ? "Qiziqdi (Click to change)" : 
+                          sp.result === 'rejected' ? "Rad etdi (Click to change)" : "Kutilmoqda (Click to change)"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          sp.result === 'interested' ? 'bg-emerald-500' :
+                          sp.result === 'rejected' ? 'bg-rose-500' : 'bg-slate-400'
+                        }`} />
+                      </button>
 
-                      {/* Center: Title & Inline Notes */}
+                      {/* Center: Title & Inline debounced notes */}
                       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
                           {sp.property ? (
                             // Database Property link
-                            <div className="flex items-center gap-1 min-w-0">
-                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <div className="flex items-baseline gap-1.5 min-w-0">
                               <button
                                 type="button"
                                 onClick={() => setSelectedProperty(sp.property!)}
-                                className="font-extrabold text-[11px] text-[#1C2421] text-left hover:underline hover:text-slate-900 cursor-pointer truncate"
+                                className="font-extrabold text-[11px] text-[#1C2421] text-left hover:underline hover:text-black cursor-pointer truncate"
                               >
                                 {sp.property.title}
                               </button>
-                              <span className="text-[9px] font-bold text-slate-400 shrink-0 truncate max-w-[120px]">
-                                ({sp.property.rayon} • {formatPrice(sp.property.price)})
+                              <span className="text-[9px] font-bold text-slate-400 truncate shrink-0">
+                                {sp.property.rayon} • {formatPrice(sp.property.price)}
                               </span>
                             </div>
                           ) : (
-                            // Custom Freeform Title
-                            <div className="flex items-center gap-1 flex-1">
-                              <Tag className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                              <input
-                                type="text"
-                                value={sp.custom_title || ''}
-                                onChange={(e) => handleSpTitleChange(sp.id!, e.target.value)}
-                                className="w-full text-[11px] font-extrabold border-b border-transparent hover:border-slate-200 focus:border-slate-800 outline-none text-[#1C2421] bg-transparent focus:bg-white px-1 rounded transition-all py-0"
-                                placeholder="Custom Obyekt nomi..."
-                              />
-                            </div>
+                            // Custom Freeform Title (Debounced editable input)
+                            <input
+                              type="text"
+                              value={sp.custom_title || ''}
+                              onChange={(e) => handleSpTitleChange(sp.id!, e.target.value)}
+                              className="w-full text-[11px] font-extrabold border-b border-transparent hover:border-slate-200 focus:border-slate-800 outline-none text-[#1C2421] bg-transparent focus:bg-white px-1 rounded transition-all py-0"
+                              placeholder="Obyekt nomi..."
+                            />
                           )}
+
+                          {/* Minimalist text status indicator */}
+                          <span className={`text-[8.5px] font-black uppercase tracking-wider shrink-0 ${
+                            sp.result === 'interested' ? 'text-emerald-600' :
+                            sp.result === 'rejected' ? 'text-rose-500' : 'text-slate-400'
+                          }`}>
+                            {sp.result === 'interested' ? 'Qiziqdi' : sp.result === 'rejected' ? 'Rad etdi' : 'Kutilmoqda'}
+                          </span>
                         </div>
 
-                        {/* Inline Debounced Note Input */}
+                        {/* Debounced Inline Note Input */}
                         <input
                           type="text"
                           value={sp.notes || ''}
                           onChange={(e) => handleSpNotesChange(sp.id!, e.target.value)}
                           placeholder="Muzokara qaydlarini yozing..."
-                          className="w-full text-[10px] font-semibold text-slate-500 border border-transparent hover:border-slate-100 focus:border-slate-200 focus:bg-white bg-transparent hover:bg-slate-50/50 px-1 py-0.5 rounded outline-none placeholder-slate-300 transition-all"
+                          className="w-full text-[10px] font-semibold text-slate-400 focus:text-slate-700 bg-transparent border-0 outline-none focus:ring-0 p-0 placeholder-slate-350 transition-colors"
                         />
                       </div>
 
-                      {/* Right: Date & Delete icon */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Right: Date & Delete button */}
+                      <div className="flex items-center gap-1.5 shrink-0 ml-1 mt-0.5">
                         {sp.shown_date && (
-                          <span className="text-[9px] font-mono text-slate-400">
+                          <span className="text-[9px] font-mono font-bold text-slate-300">
                             {new Date(sp.shown_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
                           </span>
                         )}
@@ -1572,7 +1584,7 @@ export default function CrmDashboard({ initialProperties, initialClients }: CrmD
                               setShownProperties(shown);
                             }
                           }}
-                          className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                          className="p-1 hover:bg-rose-50 rounded-lg text-slate-300 hover:text-rose-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
                           title="Ro'yxatdan olib tashlash"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
